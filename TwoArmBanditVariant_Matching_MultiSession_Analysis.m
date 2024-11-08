@@ -758,7 +758,7 @@ Block1TransitionLine{iSession + 1} = line(Block1TransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', 'k');
 
-Plateau = 1 - mean(AverageBlock1Transition(1:10));
+Plateau = mean(AverageBlock1Transition(51:61));
 YData = Plateau - AverageBlock1Transition(11:61);
 XData = 0:50;
 ExpFitModel = fit(XData', YData', 'exp1');
@@ -800,7 +800,7 @@ Block2TransitionLine{iSession + 1} = line(Block2TransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', 'k');
 
-Plateau = 1 - mean(AverageBlock2Transition(1:10));
+Plateau = mean(AverageBlock2Transition(51:61));
 YData = Plateau - AverageBlock2Transition(11:61);
 XData = 0:50;
 ExpFitModel = fit(XData', YData', 'exp1');
@@ -842,7 +842,7 @@ Block3TransitionLine{iSession + 1} = line(Block3TransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', 'k');
 
-Plateau = 1 - mean(AverageBlock3Transition(1:10));
+Plateau = mean(AverageBlock3Transition(51:61));
 YData = Plateau - AverageBlock3Transition(11:61);
 XData = 0:50;
 ExpFitModel = fit(XData', YData', 'exp1');
@@ -884,7 +884,7 @@ Block4TransitionLine{iSession + 1} = line(Block4TransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', 'k');
 
-Plateau = 1 - mean(AverageBlock4Transition(1:10));
+Plateau = mean(AverageBlock4Transition(51:61));
 YData = Plateau - AverageBlock4Transition(11:61);
 XData = 0:50;
 ExpFitModel = fit(XData', YData', 'exp1');
@@ -925,7 +925,7 @@ BlockLTransitionLine{end + 1} = line(BlockLTransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', sand);
 
-Plateau = 1 - mean(AverageBlockLTransition(1:10));
+Plateau = mean(AverageBlockLTransition(51:61));
 YData = Plateau - AverageBlockLTransition(11:61);
 XData = 0:50;
 ExpFitModel = fit(XData', YData', 'exp1');
@@ -948,7 +948,7 @@ BlockRTransitionLine{end + 1} = line(BlockRTransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', turquoise);
 
-Plateau = 1 - mean(AverageBlockRTransition(1:10));
+Plateau = mean(AverageBlockRTransition(51:61));
 YData = Plateau - AverageBlockRTransition(11:61);
 XData = 0:50;
 ExpFitModel = fit(XData', YData', 'exp1');
