@@ -142,8 +142,24 @@ set(NoTrialStartAxes,...
 xlabel(NoTrialStartAxes, 'iTrial')
 ylabel(NoTrialStartAxes, 'NoTrialStart (%)')
 
+% WithChoice Rate across session
+WithChoiceAxes = axes(AnalysisFigure, 'Position', [0.01    0.67    0.37    0.11]);
+hold(WithChoiceAxes, 'on');
+
+WithChoiceYData = zeros(100, 2000);
+
+set(WithChoiceAxes,...
+    'TickDir', 'out',...
+    'XTickLabel', {},...
+    'XAxisLocation', 'top',...
+    'YLim', [0 100],...
+    'YTick', [0 50 100],...
+    'YAxisLocation', 'right',...
+    'FontSize', 10);
+ylabel(WithChoiceAxes, 'WithChoice (%)')
+
 % Block 1 transition (1st -> 2nd)
-Block1TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.64    0.15    0.12]);
+Block1TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.52    0.15    0.12]);
 hold(Block1TransitionAxes, 'on');
 
 PHighChoice = [];
@@ -162,7 +178,7 @@ ylabel(Block1TransitionAxes, 'Choice P_{high} (%)')
 title(Block1TransitionAxes, 'Block 1 -> 2')
 
 % Block 2 transition (2nd -> 3rd)
-Block2TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.49    0.15    0.12]);
+Block2TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.37    0.15    0.12]);
 hold(Block2TransitionAxes, 'on');
 
 Block2TransitionYData = nan(100, 61);
@@ -180,7 +196,7 @@ ylabel(Block2TransitionAxes, 'Choice P_{high} (%)')
 title(Block2TransitionAxes, 'Block 2 -> 3')
 
 % Block 3 transition (3rd -> 4th)
-Block3TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.34    0.15    0.12]);
+Block3TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.22    0.15    0.12]);
 hold(Block3TransitionAxes, 'on');
 
 Block3TransitionYData = nan(100, 61);
@@ -198,7 +214,7 @@ ylabel(Block3TransitionAxes, 'Choice P_{high} (%)')
 title(Block3TransitionAxes, 'Block 3 -> 4')
 
 % Block 4 transition (4rd -> 5th)
-Block4TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.19    0.15    0.12]);
+Block4TransitionAxes = axes(AnalysisFigure, 'Position', [0.01    0.07    0.15    0.12]);
 hold(Block4TransitionAxes, 'on');
 
 Block4TransitionYData = nan(100, 61);
@@ -212,9 +228,46 @@ set(Block4TransitionAxes,...
     'YTick', [0 50 100],...
     'YAxisLocation', 'right',...
     'FontSize', 10);
+xlabel(Block4TransitionAxes, 'Trial from block switch')
 ylabel(Block4TransitionAxes, 'Choice P_{high} (%)')
 title(Block4TransitionAxes, 'Block 4 -> 5')
 
+% Block R->L transition
+BlockLTransitionAxes = axes(AnalysisFigure, 'Position', [0.26    0.52    0.15    0.12]);
+hold(BlockLTransitionAxes, 'on');
+
+BlockLTransitionLine = {};
+BlockLTransitionYData = [];
+
+set(BlockLTransitionAxes,...
+    'TickDir', 'out',...
+    'XLim', [-10 50],...
+    'XTick', [0 20 40],...
+    'XTickLabel', [],...
+    'YLim', [0 100],...
+    'YTick', [0 50 100],...
+    'FontSize', 10);
+ylabel(BlockLTransitionAxes, 'Choice_L (%)')
+title(BlockLTransitionAxes, 'Block R -> L')
+
+% Block L->R transition
+BlockRTransitionAxes = axes(AnalysisFigure, 'Position', [0.26    0.37    0.15    0.12]);
+hold(BlockRTransitionAxes, 'on');
+
+BlockRTransitionLine = {};
+BlockRTransitionYData = [];
+
+set(BlockRTransitionAxes,...
+    'TickDir', 'out',...
+    'XLim', [-10 50],...
+    'XTick', [0 20 40],...
+    'XTickLabel', [1 21 41],...
+    'YLim', [0 100],...
+    'YTick', [0 50 100],...
+    'FontSize', 10);
+xlabel(BlockRTransitionAxes, 'Trial from block switch')
+ylabel(BlockRTransitionAxes, 'Choice_R (%)')
+title(BlockRTransitionAxes, 'Block L -> R')
 
 %% Analysis across sessions
 SessionDateLabel = [];
@@ -316,7 +369,7 @@ for iSession = 1:length(DataHolder)
         continue
     end
     
-    SessionDateLabel = [SessionDateLabel string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
+    SessionDateLabel = [SessionDateLabel, string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
 
     ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
     Baited = SessionData.Custom.TrialData.Baited(:, 1:nTrials);
@@ -401,7 +454,18 @@ for iSession = 1:length(DataHolder)
                                       'Color', SessionColor);
     
     NoTrialStartYData(iSession, 1:length(NoTrialStart)) = NoTrialStart * 100;
-
+    
+    % WithChoice Rate across session
+    WithChoiceRate = ~isnan(ChoiceLeft);
+    WithChoiceLine{iSession} = line(WithChoiceAxes,...
+                                    'xdata', idxTrial,...
+                                    'ydata', smooth(movmean(WithChoiceRate, [10 9])) * 100,...
+                                    'LineStyle', '-',...
+                                    'Marker', 'none',...
+                                    'Color', SessionColor);
+    
+    WithChoiceYData(iSession, 1:length(ChoiceLeft)) = WithChoiceRate * 100;
+    
     % Block 1 Transition (1st -> 2nd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
     PHighChoice(iSession, 1) = RewardProb(1, BlockTransitionIdx) > RewardProb(2, BlockTransitionIdx);
@@ -466,6 +530,52 @@ for iSession = 1:length(DataHolder)
         
     else
         Block4TransitionYData(iSession, :) = nan(1, 61);
+    end
+    
+    % Block R->L Transition
+    BlockLTransitionNdx = find(BlockTrialNumber == 1 & RewardProb(1, :) > RewardProb(2, :));
+    for iBlockLTransitionIdx = 1:length(BlockLTransitionNdx)
+        BlockLTransitionIdx = BlockLTransitionNdx(iBlockLTransitionIdx);
+        if BlockLTransitionIdx + 50 <= nTrials &&...
+           BlockLTransitionIdx - 20 >= 1
+            AnalysisWindow = BlockLTransitionIdx - 20:BlockLTransitionIdx + 50;
+            ChosenLeft = ChoiceLeft(AnalysisWindow);
+            if mean(isnan(ChosenLeft)) > 0.3 % 21/71 trial
+                continue
+            end
+            YData = smooth(movmean(ChosenLeft, [9 0])); % have to include some idx further back for movmean to work
+            BlockLTransitionLine{end+1} = line(BlockLTransitionAxes,...
+                                               'xdata', -10:50,...
+                                               'ydata', YData(11:end) * 100,...
+                                               'LineStyle', '-',...
+                                               'Marker', 'none',...
+                                               'Color', SessionColor);
+            
+            BlockLTransitionYData(end+1, :) = ChosenLeft(11:end);
+        end
+    end
+
+    % Block L->R Transition
+    BlockRTransitionNdx = find(BlockTrialNumber == 1 & RewardProb(1, :) < RewardProb(2, :));
+    for iBlockRTransitionIdx = 1:length(BlockRTransitionNdx)
+        BlockRTransitionIdx = BlockRTransitionNdx(iBlockRTransitionIdx);
+        if BlockRTransitionIdx + 50 <= nTrials &&...
+           BlockRTransitionIdx - 20 >= 1
+            AnalysisWindow = BlockRTransitionIdx - 20:BlockRTransitionIdx + 50;
+            ChosenRight = 1 - ChoiceLeft(AnalysisWindow);
+            if mean(isnan(ChosenRight)) > 0.3 % 21/71 trial
+                continue
+            end
+            YData = smooth(movmean(ChosenRight, [9 0])); % have to include some idx further back for movmean to work
+            BlockRTransitionLine{end+1} = line(BlockRTransitionAxes,...
+                                               'xdata', -10:50,...
+                                               'ydata', YData(11:end) * 100,...
+                                               'LineStyle', '-',...
+                                               'Marker', 'none',...
+                                               'Color', SessionColor);
+            
+            BlockRTransitionYData(end+1, :) = ChosenRight(11:end);
+        end
     end
 
     %% Analysis across sessions
@@ -625,6 +735,18 @@ NoTrialStartLine{iSession + 1} = line(NoTrialStartAxes,...
                                       'Marker', 'none',...
                                       'Color', 'k');
 
+% WithChoice Rate across session
+AverageWithChoiceRate = WithChoiceYData(1:iSession, :);
+AverageWithChoiceRate = mean(AverageWithChoiceRate);
+AverageWithChoiceRate = AverageWithChoiceRate(AverageWithChoiceRate ~= 0);
+
+WithChoiceLine{iSession + 1} = line(WithChoiceAxes,...
+                                    'xdata', 1:length(AverageWithChoiceRate),...
+                                    'ydata', smooth(AverageWithChoiceRate),...
+                                    'LineStyle', '-',...
+                                    'Marker', 'none',...
+                                    'Color', 'k');
+
 % Block 1 Transition (1st -> 2nd)
 Block1TransitionYData = Block1TransitionYData(1:iSession, :);
 AverageBlock1Transition = mean(Block1TransitionYData, 'omitnan');
@@ -720,8 +842,6 @@ Block3TransitionLine{iSession + 1} = line(Block3TransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', 'k');
 
-AverageLeftBlock3Transition = mean(Block3TransitionYData(PHighChoice(:, 3) == 1, :), 'omitnan');
-
 Plateau = 1 - mean(AverageBlock3Transition(1:10));
 YData = Plateau - AverageBlock3Transition(11:61);
 XData = 0:50;
@@ -734,6 +854,8 @@ Block3TransitionText = text(Block3TransitionAxes, -8, 90,...
                             Block3TransitionString,...
                             'FontSize', 10,...
                             'Interpreter', 'none');
+
+AverageLeftBlock3Transition = mean(Block3TransitionYData(PHighChoice(:, 3) == 1, :), 'omitnan');
 
 LeftBlock3TransitionLine = line(Block3TransitionAxes,...
                                 'xdata', -10:50,...
@@ -762,8 +884,6 @@ Block4TransitionLine{iSession + 1} = line(Block4TransitionAxes,...
                                           'Marker', 'none',...
                                           'Color', 'k');
 
-AverageLeftBlock4Transition = mean(Block4TransitionYData(PHighChoice(:, 4) == 1, :), 'omitnan');
-
 Plateau = 1 - mean(AverageBlock4Transition(1:10));
 YData = Plateau - AverageBlock4Transition(11:61);
 XData = 0:50;
@@ -776,6 +896,8 @@ Block4TransitionText = text(Block4TransitionAxes, -8, 90,...
                             Block4TransitionString,...
                             'FontSize', 10,...
                             'Interpreter', 'none');
+
+AverageLeftBlock4Transition = mean(Block4TransitionYData(PHighChoice(:, 4) == 1, :), 'omitnan');
 
 LeftBlock4TransitionLine = line(Block4TransitionAxes,...
                                 'xdata', -10:50,...
@@ -793,10 +915,56 @@ RightBlock4TransitionLine = line(Block4TransitionAxes,...
                                  'Marker', 'none',...
                                  'Color', turquoise);
 
+% Block R->L Transition
+AverageBlockLTransition = mean(BlockLTransitionYData, 'omitnan');
+
+BlockLTransitionLine{end + 1} = line(BlockLTransitionAxes,...
+                                          'xdata', -10:50,...
+                                          'ydata', smooth(AverageBlockLTransition) * 100,...
+                                          'LineStyle', '-',...
+                                          'Marker', 'none',...
+                                          'Color', sand);
+
+Plateau = 1 - mean(AverageBlockLTransition(1:10));
+YData = Plateau - AverageBlockLTransition(11:61);
+XData = 0:50;
+ExpFitModel = fit(XData', YData', 'exp1');
+Tau = - 1 ./ ExpFitModel.b;
+
+BlockLTransitionString = sprintf('Plateau = %2.0f%%\ntau = %2.0f', Plateau * 100, Tau);
+
+BlockLTransitionText = text(BlockLTransitionAxes, -8, 90,...
+                            BlockLTransitionString,...
+                            'FontSize', 10,...
+                            'Interpreter', 'none');
+
+% Block L->R Transition
+AverageBlockRTransition = mean(BlockRTransitionYData, 'omitnan');
+
+BlockRTransitionLine{end + 1} = line(BlockRTransitionAxes,...
+                                          'xdata', -10:50,...
+                                          'ydata', smooth(AverageBlockRTransition) * 100,...
+                                          'LineStyle', '-',...
+                                          'Marker', 'none',...
+                                          'Color', turquoise);
+
+Plateau = 1 - mean(AverageBlockRTransition(1:10));
+YData = Plateau - AverageBlockRTransition(11:61);
+XData = 0:50;
+ExpFitModel = fit(XData', YData', 'exp1');
+Tau = - 1 ./ ExpFitModel.b;
+
+BlockRTransitionString = sprintf('Plateau = %2.0f%%\ntau = %2.0f', Plateau * 100, Tau);
+
+BlockRTransitionText = text(BlockRTransitionAxes, -8, 90,...
+                            BlockRTransitionString,...
+                            'FontSize', 10,...
+                            'Interpreter', 'none');
+
 % SkippedBaited Rate across session
-ValidIndex = SkippedBaitedAxes.XTick <= length(SessionDateLabel);
 set(SkippedBaitedAxes,...
-    'XTickLabel', SessionDateLabel(SkippedBaitedAxes.XTick(ValidIndex)),...
+    'XTick', 1:length(SessionDateLabel),...
+    'XTickLabel', SessionDateLabel,...
     'XTickLabelRotation', 90);
 
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
