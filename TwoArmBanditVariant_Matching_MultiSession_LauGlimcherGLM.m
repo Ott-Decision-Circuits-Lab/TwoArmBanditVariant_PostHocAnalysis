@@ -397,6 +397,7 @@ disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 for iSession = 1:length(DataHolder)
     % Import SessionData
     SessionData = DataHolder{iSession};
+    SessionDateLabel = [SessionDateLabel string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
     
     nTrials = SessionData.nTrials;
     if nTrials < 200
@@ -404,8 +405,6 @@ for iSession = 1:length(DataHolder)
         continue
     end
     
-    SessionDateLabel = [SessionDateLabel string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
-
     ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
     Baited = SessionData.Custom.TrialData.Baited(:, 1:nTrials);
     IncorrectChoice = SessionData.Custom.TrialData.IncorrectChoice(1:nTrials);

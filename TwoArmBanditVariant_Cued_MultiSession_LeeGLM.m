@@ -1,18 +1,14 @@
-function TwoArmBanditVariant_Cued_MultiSession_Analysis(DataFolderPath)
+function TwoArmBanditVariant_Cued_MultiSession_LeeGLM(DataFolderPath)
 %{
-First create on 20230622 by Antonio Lee for AG Ott @HU Berlin
-With the file server architecture, this functions runs through the
-session folders of the designated Animals after a PeriodStartDate and before a
-PeriodEndDate to parse out the TrialData necessary for Analysis.m
+by Antonio Lee for AG Ott @HU Berlin
 
-V2.0 20240515 dedicated script for analyzing multiple sessions with similar
+V1.0 20241115 dedicated script for analyzing multiple sessions with similar
 settings (no checking is done). A folder is selected instead of a .mat file
 (so that a bit of back and forth looking at the concatenated data and
 individual session data is allowed)
 
-The analysis is positioned to only look at the data descriptively,
-particularly identifying any indication of which some sessions are not, or
-some trials are not comparable with the others (head and tail)
+The analysis is positioned to perform GLM on data from multiple session,
+such that the statistical power is greater (esp. for high rewarding cue)
 %}
 
 if nargin < 1
@@ -39,7 +35,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Cued_MultiSession_Analysis';
+AnalysisName = 'Cued_MultiSession_LeeGLM';
 
 %% Check if all sessions are of the same SettingsFile
 %{
@@ -127,123 +123,7 @@ FigureTitleText = text(FigureInfoAxes, 0, 0,...
                        'Interpreter', 'none');
 
 %% Analysis across trials
-% NoTrialStart Rate across session
-NoTrialStartAxes = axes(AnalysisFigure, 'Position', [0.01    0.84    0.37    0.11]);
-hold(NoTrialStartAxes, 'on');
-
-NoTrialStartYData = ones(100, 2000) * 100;
-
-set(NoTrialStartAxes,...
-    'TickDir', 'out',...
-    'YLim', [0 100],...
-    'YTick', [0 50 100],...
-    'YAxisLocation', 'right',...
-    'FontSize', 10);
-xlabel(NoTrialStartAxes, 'iTrial')
-ylabel(NoTrialStartAxes, 'NoTrialStart (%)')
-
-% WithChoice Rate across session
-WithChoiceAxes = axes(AnalysisFigure, 'Position', [0.01    0.67    0.37    0.11]);
-hold(WithChoiceAxes, 'on');
-
-WithChoiceYData = zeros(100, 2000);
-
-set(WithChoiceAxes,...
-    'TickDir', 'out',...
-    'XTickLabel', {},...
-    'XAxisLocation', 'top',...
-    'YLim', [0 100],...
-    'YTick', [0 50 100],...
-    'YAxisLocation', 'right',...
-    'FontSize', 10);
-ylabel(WithChoiceAxes, 'WithChoice (%)')
-
-%% Analysis across sessions
 SessionDateLabel = [];
-
-% Active Time (SessionDuration - any break > 5 minutes)
-ActiveTimeAxes = axes(AnalysisFigure, 'Position', [0.53    0.84    0.42    0.11]);
-hold(ActiveTimeAxes, 'on');
-
-set(ActiveTimeAxes,...
-    'TickDir', 'in',...
-    'XLim', [0 length(DataHolder)+1],...
-    'XTickLabel', [],...
-    'YLim', [0 4],...
-    'YAxisLocation', 'right',...
-    'FontSize', 10);
-ylabel(ActiveTimeAxes, 'Active Time (h)')
-
-% Total Water Consumption and Rate
-WaterConsumptionAxes = axes(AnalysisFigure, 'Position', [0.53    0.71    0.42    0.11]);
-hold(WaterConsumptionAxes, 'on');
-
-set(WaterConsumptionAxes,...
-    'TickDir', 'in',...
-    'XLim', [0 length(DataHolder)+1],...
-    'XTickLabel', [],...
-    'YLim', [0 15],...
-    'FontSize', 10);
-ylabel(WaterConsumptionAxes, 'Consumed Water (mL)')
-
-yyaxis(WaterConsumptionAxes, 'right')
-set(WaterConsumptionAxes,...
-    'YLim', [0 4],...
-    'FontSize', 10);
-ylabel(WaterConsumptionAxes, 'Rate (mL h^{-1})')
-
-% Left-Right Move Time
-LRMoveTimeAxes = axes(AnalysisFigure, 'Position', [0.53    0.58    0.42    0.11]);
-hold(LRMoveTimeAxes, 'on');
-
-set(LRMoveTimeAxes,...
-    'TickDir', 'in',...
-    'XLim', [0 length(DataHolder)+1],...
-    'XTickLabel', [],...
-    'YLim', [0 1],...
-    'YAxisLocation', ' right',...
-    'FontSize', 10);
-ylabel(LRMoveTimeAxes, 'MoveTime (s)')
-
-% Left-Right Time Investment (NotBaited Waiting Time)
-LRTIAxes = axes(AnalysisFigure, 'Position', [0.53    0.45    0.42    0.11]);
-hold(LRTIAxes, 'on');
-
-set(LRTIAxes,...
-    'TickDir', 'in',...
-    'XLim', [0 length(DataHolder)+1],...
-    'XTick', [],...
-    'YLim', [0 12],...
-    'YAxisLocation', ' right',...
-    'FontSize', 10);
-ylabel(LRTIAxes, 'Time Investment (s)')
-
-% Trial Length
-TrialLengthAxes = axes(AnalysisFigure, 'Position', [0.53    0.32    0.42    0.11]);
-hold(TrialLengthAxes, 'on');
-
-set(TrialLengthAxes,...
-    'TickDir', 'in',...
-    'XLim', [0 length(DataHolder)+1],...
-    'XTickLabel', [],...
-    'YLim', [0 30],...
-    'YAxisLocation', ' right',...
-    'FontSize', 10);
-ylabel(TrialLengthAxes, 'Trial Length (s)')
-
-% SkippedBaited Rate across session
-SkippedBaitedAxes = axes(AnalysisFigure, 'Position', [0.53    0.19    0.42    0.11]);
-hold(SkippedBaitedAxes, 'on');
-
-set(SkippedBaitedAxes,...
-    'TickDir', 'in',...
-    'XLim', [0 length(DataHolder)+1],...
-    'XTickLabel', [],...
-    'YLim', [0 15],...
-    'YTick', [0 5 10],...
-    'YAxisLocation', 'right',...
-    'FontSize', 10);
-ylabel(SkippedBaitedAxes, 'SkippedBaited (%)')
 
 % Cue-sorted Move Time
 CueSortedMoveTimeAxes = axes(AnalysisFigure, 'Position', [0.01    0.32    0.42    0.11]);
@@ -284,7 +164,6 @@ disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 for iSession = 1:length(DataHolder)
     % Import SessionData
     SessionData = DataHolder{iSession};
-    SessionDateLabel = [SessionDateLabel, string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
     
     nTrials = SessionData.nTrials;
     if nTrials < 200
@@ -292,6 +171,8 @@ for iSession = 1:length(DataHolder)
         continue
     end
     
+    SessionDateLabel = [SessionDateLabel, string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
+
     ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
     Baited = SessionData.Custom.TrialData.Baited(:, 1:nTrials);
     IncorrectChoice = SessionData.Custom.TrialData.IncorrectChoice(1:nTrials);

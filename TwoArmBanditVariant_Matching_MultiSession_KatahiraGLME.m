@@ -91,6 +91,7 @@ title(ModelCoefficientAxes, 'GLME Fitted Coefficients')
 for iSession = 1:length(DataHolder)
     % Import SessionData
     SessionData = DataHolder{iSession};
+    SessionDateLabel = [SessionDateLabel, string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
     
     nTrials = SessionData.nTrials;
     if nTrials < 200
