@@ -1,12 +1,9 @@
-function AnalysisFigure = TwoArmBanditVariant_Matching_ChoiceAsymmetricQLearning(DataFile)
+function EstimatedParameters = TwoArmBanditVariant_Matching_ChoiceSymmetricQLearning(DataFile)
 % Matching Analysis Function
 % Developed by Antonio Lee @ BCCN Berlin
-% Version 1.0 ~ Julz 2024
+% Version 1.0 ~ July 2024
+% Version 2.0 ~ Dec 2024 <- Convert to symmertric with forgetting
 % Model iteration see the end of script
-clear all
-global nTrials
-global ChoiceLeft
-global Rewarded
 
 if nargin < 1
     global BpodSystem
@@ -46,6 +43,7 @@ elseif ~strcmpi(SessionData.SettingsFile.GUIMeta.RiskType.String{SessionData.Set
     return
 end
 
+clear global
 
 %% Load related data to local variabels
 RatID = str2double(SessionData.Info.Subject);
@@ -129,6 +127,27 @@ LeftFeedbackDelayGraceTime = LeftFeedbackDelayGraceTime(LeftFeedbackDelayGraceTi
 RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(~isnan(RightFeedbackDelayGraceTime))';
 RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGraceTime < SessionData.SettingsFile.GUI.FeedbackDelayGrace - 0.0001);
 
+%% Parametric estimation
+LowerBound = [0.15, 6, 0.05, -2, 0.5, 0];
+UpperBound = [0.45, 10, 0.25, 0, 1, 0];
+
+global nTrials ChoiceLeft Rewarded
+
+% Free parameters
+% 20241220 tested with simulation that works well as initial parameters
+LearningRate = 0.30; % alpha
+InverseTemperature = 8; % beta
+ForgettingRate = 0.15; % gamma
+ChoiceStickiness = -1; % phi
+ChoiceForgettingRate = 1; % c_gamma
+Bias = 0;
+
+InitialParameters = [LearningRate, InverseTemperature, ForgettingRate, ChoiceStickiness, ChoiceForgettingRate, Bias];
+
+[EstimatedParameters, MinNegLogDataLikelihood] =...
+    fmincon(@ChoiceSymmetricQLearning, InitialParameters, [], [], [], [], LowerBound, UpperBound);
+end
+%{
 %% Common plots regardless of task design/ risk type
 % colour palette for events (suitable for most colourblind people)
 scarlet = [254, 60, 60]/255; % for incorrect sign, contracting with azure
@@ -180,22 +199,8 @@ FigureTitleText = text(FigureInfoAxes, 0, 0,...
                        'FontWeight','bold',...
                        'Interpreter', 'none');
 
-%% Parametric estimation
-LowerBound = [0 0 0 -1];
-UpperBound = [1 1 200 1];
-
-% Free parameters
-PosLearningRate = rand() * 0.1; % alpha_pos
-NegLearningRate = rand() * 0.1; % alpha_neg
-InverseTemperature = 1; % beta
-Bias = rand() * 2 - 1;
-
-InitialParameters = [PosLearningRate, NegLearningRate, InverseTemperature, Bias];
-
-[EstimatedParameters, MinLogDataLikelihood] =...
-    fmincon(@ChoiceAsymmetricQLearning, InitialParameters, [], [], [], [], LowerBound, UpperBound);
-
 %% Block switching behaviour across session
+%{
 BlockSwitchAxes = axes(AnalysisFigure, 'Position', [0.01    0.82    0.37    0.11]);
 hold(BlockSwitchAxes, 'on');
 if ~isempty(ChoiceLeft) && ~all(isnan(ChoiceLeft))
@@ -698,5 +703,6 @@ DataPath = strcat(DataFolder, RatName, '\bpod_graph\',...
 exportgraphics(AnalysisFigure, DataPath);
 
 close(AnalysisFigure)
-
+%}
 end % function
+%}

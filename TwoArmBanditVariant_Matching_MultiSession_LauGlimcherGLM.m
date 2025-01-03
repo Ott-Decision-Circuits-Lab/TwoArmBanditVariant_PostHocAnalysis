@@ -852,10 +852,10 @@ ChoicePsychometricLine{iSession + 1} = line(PsychometricAxes,...
                                             'LineWidth', 0.5,...
                                             'Color', 'k');
 
-XData = ChoicePsychometricLine{iSession + 1}.XData;
+PsychometricGLM = fitglm(XData, YData, 'Distribution', 'binomial');
 XRange = XData(end) - XData(1);
 
-YData = ChoicePsychometricLine{iSession + 1}.YData;
+YData = predict(PsychometricGLM, XData) * 100;
 YRange = YData(end) - YData(1);
 
 Slope = (YData(6) - YData(4)) ./ (XData(6) - XData(4));
