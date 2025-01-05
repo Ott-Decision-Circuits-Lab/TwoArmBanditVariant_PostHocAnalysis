@@ -39,7 +39,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MultiSession_LauGlimcherGLM';
+AnalysisName = 'Matching_MultiSession_FilterLauGlimcherGLM';
 
 %% Check if all sessions are of the same SettingsFile
 %{
