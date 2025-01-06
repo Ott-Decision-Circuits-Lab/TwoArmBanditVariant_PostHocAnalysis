@@ -428,7 +428,7 @@ for iSession = 1:length(DataHolder)
     
     nTrials = SessionData.nTrials;
     if nTrials < ValidTrialEnd
-        disp(['Session ', num2str(iSession), ' has nTrial < ', ValidTrialEnd,'. Impossible for analysis.'])
+        disp(['Session ', num2str(iSession), ' has nTrial < ', num2str(ValidTrialEnd),'. Impossible for analysis.'])
         continue
     end
     
