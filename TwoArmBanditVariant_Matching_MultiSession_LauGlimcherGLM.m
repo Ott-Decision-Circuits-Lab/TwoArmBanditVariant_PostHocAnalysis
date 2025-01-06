@@ -506,8 +506,8 @@ for iSession = 1:length(DataHolder)
         PredictedChoice = double(PredictedLeftChoiceProb>=0.5);
         PredictedChoice(isnan(ChoiceLeft)) = nan;
         
-        ExploringTrial = find(abs(ChoiceLeft - PredictedLeftChoiceProb') >= 0.5);
-        ExploitingTrial = find(abs(ChoiceLeft - PredictedLeftChoiceProb') < 0.5);
+        Explore = abs(ChoiceLeft - PredictedLeftChoiceProb') >= 0.5;
+        Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb') < 0.5;
             
     catch
         disp(strcat('Error: running model in iSession ', num2str(iSession)));
@@ -561,9 +561,8 @@ for iSession = 1:length(DataHolder)
     
     % Vevaiometric
     NotBaited = any(~Baited .* ChoiceLeftRight, 1) & (IncorrectChoice ~= 1);
-    Exploit = ChoiceLeft == (LogOdds'>0);
     
-    ExploringTITrial = NotBaited & ~Exploit;
+    ExploringTITrial = NotBaited & Explore;
     ExploitingTITrial = NotBaited & Exploit;
     ExploringTI = FeedbackWaitingTime(ExploringTITrial);
     ExploitingTI = FeedbackWaitingTime(ExploitingTITrial);
@@ -662,12 +661,12 @@ for iSession = 1:length(DataHolder)
     % Vevaiometric z-score
     % have to calculate last as it needs the z-score info from
     % Left/Right-TI
-    ExploringMu = (NotBaited & ~Exploit & ChoiceLeft==1) * LeftTIMu +...
-                  (NotBaited & ~Exploit & ChoiceLeft==0) * RightTIMu;
+    ExploringMu = (NotBaited & Explore & ChoiceLeft==1) * LeftTIMu +...
+                  (NotBaited & Explore & ChoiceLeft==0) * RightTIMu;
     ExploringMu = ExploringMu(ExploringTITrial);
 
-    ExploringSigma = (NotBaited & ~Exploit & ChoiceLeft==1) * LeftTISigma +...
-                     (NotBaited & ~Exploit & ChoiceLeft==0) * RightTISigma;
+    ExploringSigma = (NotBaited & Explore & ChoiceLeft==1) * LeftTISigma +...
+                     (NotBaited & Explore & ChoiceLeft==0) * RightTISigma;
     ExploringSigma = ExploringSigma(ExploringTITrial);
 
     ExploitingMu = (NotBaited & Exploit & ChoiceLeft==1) * LeftTIMu +...
@@ -751,10 +750,10 @@ for iSession = 1:length(DataHolder)
     
     %% Move time
     % Vevaiometric MT
-    ExploringMT = MoveTime(~Exploit & ~isnan(ChoiceLeft));
+    ExploringMT = MoveTime(Explore & ~isnan(ChoiceLeft));
     ExploitingMT = MoveTime(Exploit & ~isnan(ChoiceLeft));
     
-    ExploringMTLogOdds = LogOdds(~Exploit & ~isnan(ChoiceLeft))';
+    ExploringMTLogOdds = LogOdds(Explore & ~isnan(ChoiceLeft))';
     ExploitingMTLogOdds = LogOdds(Exploit & ~isnan(ChoiceLeft))';
     
     AllExploringMT = [AllExploringMT, ExploringMT];
