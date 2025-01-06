@@ -1,5 +1,6 @@
-function TwoArmBanditVariant_Cued_MultiSession_LeeGLM(DataFolderPath)
+function TwoArmBanditVariant_Cued_MS_LeeGLM(DataFolderPath)
 %{
+MS = MultiSession
 by Antonio Lee for AG Ott @HU Berlin
 
 V1.0 20241115 dedicated script for analyzing multiple sessions with similar

@@ -1,4 +1,5 @@
-function AnalysisFigure = TwoArmBanditVariant_Matching_MovingLauGlimcherGLM(DataFile)
+function AnalysisFigure = TwoArmBanditVariant_Matching_SS_MovingLauGlimcherGLM(DataFile)
+%SS = SingleSession
 % Matching Analysis Function
 % Developed by Antonio Lee @ BCCN Berlin
 % Version 2.0 ~ April 2024

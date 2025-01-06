@@ -1,4 +1,5 @@
-function EstimatedParameters = TwoArmBanditVariant_Matching_ChoiceSymmetricQLearning(DataFile)
+function EstimatedParameters = TwoArmBanditVariant_Matching_SS_ChoiceSymmetricQLearning(DataFile)
+% SS = SingleSession
 % Matching Analysis Function
 % Developed by Antonio Lee @ BCCN Berlin
 % Version 1.0 ~ July 2024

@@ -1,5 +1,6 @@
-function TwoArmBanditVariant_Matching_MultiSession_Analysis(DataFolderPath)
+function TwoArmBanditVariant_Matching_MS_Analysis(DataFolderPath)
 %{
+MS = MultiSession
 First create on 20230622 by Antonio Lee for AG Ott @HU Berlin
 With the file server architecture, this functions runs through the
 session folders of the designated Animals after a PeriodStartDate and before a

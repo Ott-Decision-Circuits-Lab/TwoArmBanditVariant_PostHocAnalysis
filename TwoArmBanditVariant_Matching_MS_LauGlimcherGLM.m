@@ -1,5 +1,6 @@
-function TwoArmBanditVariant_Matching_MultiSession_LauGlimcherGLM(DataFolderPath)
+function TwoArmBanditVariant_Matching_MS_LauGlimcherGLM(DataFolderPath)
 %{
+MS = MultiSession
 First create on 20240519 by Antonio Lee for AG Ott @HU Berlin
 
 V1.0 20240519 dedicated script for analyzing multiple sessions with similar

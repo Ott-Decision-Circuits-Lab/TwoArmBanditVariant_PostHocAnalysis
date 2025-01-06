@@ -1,14 +1,19 @@
-function TwoArmBanditVariant_Matching_MultiSession_LauGlimcherGLME(DataFolderPath)
+function TwoArmBanditVariant_Matching_MS_FilterLauGlimcherGLM(DataFolderPath)
 %{
-First create on 20240519 by Antonio Lee for AG Ott @HU Berlin
+MS = MultiSession
+First create on 20250104 by Antonio Lee for AG Ott @HU Berlin
 
-V1.0 20241108 dedicated script for analyzing multiple sessions with similar
+V1.0 20250104 dedicated script for analyzing multiple sessions with similar
 settings (no checking is done). A folder is selected instead of a .mat file
 (so that a bit of back and forth looking at the concatenated data and
 individual session data is allowed)
 
-The analysis is positioned to look at the data using a mixed-effect version
-of the Lau-Glimcher models with session being the random variable.
+The analysis is positioned to look at the data using Lau-Glimcher models of
+individual sessions, i.e. sessions are considered differently. Additional
+plots of how the coefficients evolve during the sessions are made.
+
+Additionally filter in only trials where consistent engagement happens,
+using data across sessions
 %}
 
 if nargin < 1
@@ -35,7 +40,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MultiSession_LauGlimcherGLMM';
+AnalysisName = 'Matching_MultiSession_FilterLauGlimcherGLM';
 
 %% Check if all sessions are of the same SettingsFile
 %{
@@ -390,6 +395,30 @@ xlabel(MTSqrtZScoreDistributionAxes, '')
 title(MTSqrtZScoreDistributionAxes, '');
 %}
 
+%% Find trials with consistent engagement, i.e. WithChoice >= 80%
+WithChoiceYData = zeros(100, 2000);
+for iSession = 1:length(DataHolder)
+    % Import SessionData
+    SessionData = DataHolder{iSession};
+    nTrials = SessionData.nTrials;
+    if nTrials < 200
+        disp(['Session ', num2str(iSession), ' has nTrial < 200. Not include in engagement estimation.'])
+        continue
+    end
+    
+    ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
+    WithChoiceRate = ~isnan(ChoiceLeft);
+    WithChoiceYData(iSession, 1:length(ChoiceLeft)) = WithChoiceRate * 100;
+end
+
+AverageWithChoiceRate = WithChoiceYData(1:iSession, :);
+AverageWithChoiceRate = mean(AverageWithChoiceRate);
+AverageWithChoiceRate = AverageWithChoiceRate(AverageWithChoiceRate ~= 0);
+AverageWithChoiceRate = smooth(AverageWithChoiceRate, 50);
+
+ValidTrialBegin = find(AverageWithChoiceRate >= 90, 1, 'first');
+ValidTrialEnd = find(AverageWithChoiceRate(ValidTrialBegin:end) < 80, 1, 'first') + ValidTrialBegin - 1;
+
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 %% Plotting
@@ -399,8 +428,8 @@ for iSession = 1:length(DataHolder)
     SessionDateLabel = [SessionDateLabel string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
     
     nTrials = SessionData.nTrials;
-    if nTrials < 200
-        disp(['Session ', num2str(iSession), ' has nTrial < 200. Impossible for analysis.'])
+    if nTrials < ValidTrialEnd
+        disp(['Session ', num2str(iSession), ' has nTrial < ', num2str(ValidTrialEnd),'. Impossible for analysis.'])
         continue
     end
     
@@ -496,17 +525,20 @@ for iSession = 1:length(DataHolder)
         X = [Choices, Rewards];
         X(isnan(X)) = 0;
 
-        LauGlimcherGLM = fitglm(X, ChoiceLeft', 'distribution', 'binomial');
+        LauGlimcherGLM = fitglm(X(ValidTrialBegin:ValidTrialEnd, :), ChoiceLeft(ValidTrialBegin:ValidTrialEnd)', 'distribution', 'binomial');
 
         % predict choices
-        PredictedLeftChoiceProb = LauGlimcherGLM.Fitted.Response;
-        LogOdds = LauGlimcherGLM.Fitted.LinearPredictor;   %logodds for both: left and right
+        PredictedLeftChoiceProb = nan(1, nTrials);
+        PredictedLeftChoiceProb(ValidTrialBegin:ValidTrialEnd) = LauGlimcherGLM.Fitted.Response;
+        LogOdds = nan(1, nTrials);
+        LogOdds(ValidTrialBegin:ValidTrialEnd) = LauGlimcherGLM.Fitted.LinearPredictor;   %logodds for both: left and right
 
         PredictedChoice = double(PredictedLeftChoiceProb>=0.5);
         PredictedChoice(isnan(ChoiceLeft)) = nan;
+        PredictedChoice(isnan(PredictedLeftChoiceProb)) = nan;
         
-        ExploringTrial = find(abs(ChoiceLeft - PredictedLeftChoiceProb') >= 0.5);
-        ExploitingTrial = find(abs(ChoiceLeft - PredictedLeftChoiceProb') < 0.5);
+        Explore = abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5;
+        Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5;
             
     catch
         disp(strcat('Error: running model in iSession ', num2str(iSession)));
@@ -514,12 +546,12 @@ for iSession = 1:length(DataHolder)
         
     end
     
-    AllPredictedProb = [AllPredictedProb, PredictedLeftChoiceProb'];
-    AllLogOdds = [AllLogOdds, LogOdds'];
+    AllPredictedProb = [AllPredictedProb, PredictedLeftChoiceProb];
+    AllLogOdds = [AllLogOdds, LogOdds];
     AllChoiceLeft = [AllChoiceLeft, ChoiceLeft];
 
     % Psychometric
-    ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
+    ValidTrial = ~isnan(ChoiceLeft) & ~isnan(LogOdds); % and EarlyWithdrawal is always 0
     ValidLogOdds = LogOdds(ValidTrial);
     ValidChoice = ChoiceLeft(ValidTrial)';
     
@@ -560,15 +592,14 @@ for iSession = 1:length(DataHolder)
     
     % Vevaiometric
     NotBaited = any(~Baited .* ChoiceLeftRight, 1) & (IncorrectChoice ~= 1);
-    Exploit = ChoiceLeft == (LogOdds'>0);
     
-    ExploringTITrial = NotBaited & ~Exploit;
+    ExploringTITrial = NotBaited & Explore;
     ExploitingTITrial = NotBaited & Exploit;
     ExploringTI = FeedbackWaitingTime(ExploringTITrial);
     ExploitingTI = FeedbackWaitingTime(ExploitingTITrial);
     
-    ExploringLogOdds = LogOdds(ExploringTITrial)';
-    ExploitingLogOdds = LogOdds(ExploitingTITrial)';
+    ExploringLogOdds = LogOdds(ExploringTITrial);
+    ExploitingLogOdds = LogOdds(ExploitingTITrial);
     
     AllExploringTI = [AllExploringTI, ExploringTI];
     AllExploitingTI = [AllExploitingTI, ExploitingTI];
@@ -602,15 +633,16 @@ for iSession = 1:length(DataHolder)
                                  'Color', SessionColor);
     
     % Vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
-    LeftTITrial = NotBaited & ChoiceLeft==1;
-    RightTITrial = NotBaited & ChoiceLeft==0;
+    LeftTITrial = NotBaited & ChoiceLeft==1 & ValidTrial;
+    RightTITrial = NotBaited & ChoiceLeft==0 & ValidTrial;
     LeftTI = FeedbackWaitingTime(LeftTITrial);
     RightTI = FeedbackWaitingTime(RightTITrial);
     
-    AbsModelResiduals = abs(LauGlimcherGLM.Residuals.Raw);
+    AbsModelResiduals = nan(1, nTrials);
+    AbsModelResiduals(ValidTrialBegin:ValidTrialEnd) = abs(LauGlimcherGLM.Residuals.Raw);
     
-    LeftAbsResidual = AbsModelResiduals(LeftTITrial)';
-    RightAbsResidual = AbsModelResiduals(RightTITrial)';
+    LeftAbsResidual = AbsModelResiduals(LeftTITrial);
+    RightAbsResidual = AbsModelResiduals(RightTITrial);
     
     AllLeftTI = [AllLeftTI, LeftTI];
     AllRightTI = [AllRightTI, RightTI];
@@ -661,12 +693,12 @@ for iSession = 1:length(DataHolder)
     % Vevaiometric z-score
     % have to calculate last as it needs the z-score info from
     % Left/Right-TI
-    ExploringMu = (NotBaited & ~Exploit & ChoiceLeft==1) * LeftTIMu +...
-                  (NotBaited & ~Exploit & ChoiceLeft==0) * RightTIMu;
+    ExploringMu = (NotBaited & Explore & ChoiceLeft==1) * LeftTIMu +...
+                  (NotBaited & Explore & ChoiceLeft==0) * RightTIMu;
     ExploringMu = ExploringMu(ExploringTITrial);
 
-    ExploringSigma = (NotBaited & ~Exploit & ChoiceLeft==1) * LeftTISigma +...
-                     (NotBaited & ~Exploit & ChoiceLeft==0) * RightTISigma;
+    ExploringSigma = (NotBaited & Explore & ChoiceLeft==1) * LeftTISigma +...
+                     (NotBaited & Explore & ChoiceLeft==0) * RightTISigma;
     ExploringSigma = ExploringSigma(ExploringTITrial);
 
     ExploitingMu = (NotBaited & Exploit & ChoiceLeft==1) * LeftTIMu +...
@@ -742,19 +774,19 @@ for iSession = 1:length(DataHolder)
                                     RewardedMagnitude(iTrial);
     end
     
-    AllAbsResidual = [AllAbsResidual, AbsModelResiduals'];
-    AllRewardRate = [AllRewardRate, RewardedHistory];
+    AllAbsResidual = [AllAbsResidual, AbsModelResiduals(ValidTrial)];
+    AllRewardRate = [AllRewardRate, RewardedHistory(ValidTrial)];
     
-    AllLeftTIRewardRate = [AllLeftTIRewardRate, RewardedHistory(LeftTITrial)];
-    AllRightTIRewardRate = [AllRightTIRewardRate, RewardedHistory(RightTITrial)];
+    AllLeftTIRewardRate = [AllLeftTIRewardRate, RewardedHistory(LeftTITrial & ValidTrial)];
+    AllRightTIRewardRate = [AllRightTIRewardRate, RewardedHistory(RightTITrial& ValidTrial)];
     
     %% Move time
     % Vevaiometric MT
-    ExploringMT = MoveTime(~Exploit & ~isnan(ChoiceLeft));
-    ExploitingMT = MoveTime(Exploit & ~isnan(ChoiceLeft));
+    ExploringMT = MoveTime(Explore);
+    ExploitingMT = MoveTime(Exploit);
     
-    ExploringMTLogOdds = LogOdds(~Exploit & ~isnan(ChoiceLeft))';
-    ExploitingMTLogOdds = LogOdds(Exploit & ~isnan(ChoiceLeft))';
+    ExploringMTLogOdds = LogOdds(Explore);
+    ExploitingMTLogOdds = LogOdds(Exploit);
     
     AllExploringMT = [AllExploringMT, ExploringMT];
     AllExploitingMT = [AllExploitingMT, ExploitingMT];
@@ -778,11 +810,11 @@ for iSession = 1:length(DataHolder)
                                    'Color', SessionColor);
     
     % Vevaiometric MT (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
-    LeftMT = MoveTime(ChoiceLeft==1);
-    RightMT = MoveTime(ChoiceLeft==0);
+    LeftMT = MoveTime(ChoiceLeft==1 & ValidTrial);
+    RightMT = MoveTime(ChoiceLeft==0 & ValidTrial);
     
-    LeftMTAbsResidual = AbsModelResiduals(ChoiceLeft==1)';
-    RightMTAbsResidual = AbsModelResiduals(ChoiceLeft==0)';
+    LeftMTAbsResidual = AbsModelResiduals(ChoiceLeft==1 & ValidTrial);
+    RightMTAbsResidual = AbsModelResiduals(ChoiceLeft==0 & ValidTrial);
     
     AllLeftMT = [AllLeftMT, LeftMT];
     AllRightMT = [AllRightMT, RightMT];
@@ -844,12 +876,25 @@ Bin = linspace(-5, 5, 11);
 [XData, YData, Error] = BinData(ValidLogOdds, ValidChoice, Bin);
 ValidData = ~isnan(XData) & ~isnan(YData) & ~isnan(Error);
 
-ChoicePsychometricLine{iSession} = line(PsychometricAxes,...
-                                        'xdata', XData(ValidData),...
-                                        'ydata', YData(ValidData) * 100,...
-                                        'LineStyle', '-',...
-                                        'LineWidth', 0.5,...
-                                        'Color', 'k');
+ChoicePsychometricLine{iSession + 1} = line(PsychometricAxes,...
+                                            'xdata', XData(ValidData),...
+                                            'ydata', YData(ValidData) * 100,...
+                                            'LineStyle', '-',...
+                                            'LineWidth', 0.5,...
+                                            'Color', 'k');
+
+PsychometricGLM = fitglm(XData, YData, 'Distribution', 'binomial');
+XRange = XData(end) - XData(1);
+
+YData = predict(PsychometricGLM, XData) * 100;
+YRange = YData(end) - YData(1);
+
+Slope = (YData(6) - YData(4)) ./ (XData(6) - XData(4));
+
+Text = sprintf('XRange = %4.2f\nYRange = %4.1f%%\nSlope = %4.1f', XRange, YRange, Slope);
+RewardCoeffText = text(PsychometricAxes, -5, 85,...
+                       Text,...
+                       'FontSize', 8);
 
 % Coefficient of Lau-Glimcher GLM
 XData = 1:HistoryKernelSize;
@@ -874,6 +919,13 @@ InterceptLine{iSession + 1} = line(ModelCoefficientAxes,...
                                    'ydata', AverageIntercept,...
                                    'LineStyle', '--',...
                                    'Color', 'k');
+
+Model = fit([1:5]', AverageRewardCoefficients', 'exp1');
+RewardCoeffText = text(ModelCoefficientAxes, -5, 2.5,...
+                       sprintf('RewardCoeff\n= %4.2f * exp(-iTrial/%4.2f)',...
+                               Model.a,...
+                               -1 ./ Model.b),...
+                       'FontSize', 8);
 
 % Vevaiometric
 [ExploreLineXData, ExploreLineYData] = Binvevaio(AllExploringLogOdds, AllExploringTI, 10);
