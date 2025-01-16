@@ -1,4 +1,4 @@
-function NegLogDataLikelihood = ChoiceSymmetricQLearning(Parameters)
+function [NegLogDataLikelihood, Values] = ChoiceSymmetricQLearning(Parameters)
 
 % Parameters import
 % fixed variable
@@ -12,13 +12,13 @@ ChoiceForgettingRate = Parameters(5); % c_gamma
 Bias = 0; %Parameters(6);
 
 % Q-value initialisation
-LeftValue = 0.25;
-RightValue = 0.25;
+LeftValue = 0;
+RightValue = 0;
 ChoiceMemory = 0;
 NegLogDataLikelihood = 0;
 
 % Likelihood iteration
-for iTrial = 1:nTrials
+for iTrial = 1:nTrials-1 % <- -1 as raw ChoiceLeft has one pre-allocated nan
     LogOdds = InverseTemperature * (LeftValue(iTrial) - RightValue(iTrial)) +...
               + ChoiceStickiness * ChoiceMemory(iTrial) + Bias;
     
@@ -59,4 +59,9 @@ for iTrial = 1:nTrials
         % ChoiceMemory(iTrial + 1) =  ChoiceMemory(iTrial); 
     end
 end % end for-loop
+
+Values.LeftValue = LeftValue;
+Values.RightValue = RightValue;
+Values.ChoiceMemory = ChoiceMemory;
+
 end % end function
