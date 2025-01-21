@@ -16,6 +16,7 @@ particularly identifying any indication of which some sessions are not, or
 some trials are not comparable with the others (head and tail)
 %}
 
+%% loading files
 if nargin < 1
     DataFolderPath = uigetdir(OttLabDataServerFolderPath());
 elseif ~ischar(DataFolderPath) && ~isstring(DataFolderPath)
@@ -40,7 +41,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Cued_MultiSession_Analysis';
+AnalysisName = 'Cued_MS_Analysis';
 
 %% Check if all sessions are of the same SettingsFile
 %{
@@ -65,36 +66,6 @@ for iSession = 1:length(DataHolder)
 end
 %}
     
-%% Common plots regardless of task design/ risk type
-% colour palette for events (suitable for most colourblind people)
-scarlet = [254, 60, 60]/255; % for incorrect sign, contracting with azure
-denim = [31, 54, 104]/255; % mainly for unsuccessful trials
-azure = [0, 162, 254]/255; % for rewarded sign
-
-neon_green = [26, 255, 26]/255; % for NotBaited
-neon_purple = [168, 12, 180]/255; % for SkippedBaited
-
-sand = [225, 190 106]/255; % for left-right
-turquoise = [64, 176, 166]/255;
-LRPalette = [sand; turquoise];
-
-% colour palette for cues: (1- P(r)) * 128 + 127
-% P(0) = white; P(1) = smoky gray
-% RewardProbCategories = unique(RewardProb);
-% CuedPalette = ((1 - RewardProbCategories) * [128 128 128] + 127)/255;
-
-%{
-if p.TimelineView
-    EarliestSessionDate = datetime(DataHolder{1}.Info.SessionDate);
-    LatestSessionDate = datetime(DataHolder{end}.Info.SessionDate);
-    FullDateRange = between(EarliestSessionDate, LatestSessionDate, 'Days');
-    FullDateRangeChar = char(FullDateRange);
-    ColourAdjustmentDenominator = str2double(FullDateRangeChar(1:end-1));
-else
-    ColourAdjustmentDenominator = size(DataHolder);
-end
-%}
-
 %% Initiatize figure
 % create figure
 AnalysisFigure = figure('Position', [   0       0    1191     842],... % DIN A3, 72 ppi
@@ -126,6 +97,9 @@ FigureTitleText = text(FigureInfoAxes, 0, 0,...
                        'FontSize', 14,...
                        'FontWeight','bold',...
                        'Interpreter', 'none');
+
+% colour palette
+ColourPalette = CommonColourPalette();
 
 %% Analysis across trials
 % NoTrialStart Rate across session
@@ -292,7 +266,8 @@ for iSession = 1:length(DataHolder)
         disp(['Session ', num2str(iSession), ' has nTrial < 200. Impossible for analysis.'])
         continue
     end
-    
+    idxTrial = 1:nTrials;
+
     ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
     Baited = SessionData.Custom.TrialData.Baited(:, 1:nTrials);
     IncorrectChoice = SessionData.Custom.TrialData.IncorrectChoice(1:nTrials);
@@ -314,9 +289,14 @@ for iSession = 1:length(DataHolder)
     % FeedbackDelay= FeedbackDelay'; 
     
     RewardProb = SessionData.Custom.TrialData.RewardProb(:, 1:nTrials);
+    RewardProbCategories = unique(RewardProb);
+    
     LightLeft = SessionData.Custom.TrialData.LightLeft(1:nTrials);
-    LightLeftRight = [LightLeft; 1-LightLeft]; 
+    LightLeftRight = [LightLeft; 1-LightLeft];
+    TrialRewardProb = sum(RewardProb .* LightLeftRight, 1);
+    
     ChoiceLeftRight = [ChoiceLeft; 1-ChoiceLeft]; 
+    ChoiceRewardProb = sum(RewardProb .* ChoiceLeftRight, 1);
     
     BlockNumber = SessionData.Custom.TrialData.BlockNumber(:, 1:nTrials);
     BlockTrialNumber = SessionData.Custom.TrialData.BlockTrialNumber(:, 1:nTrials);
@@ -362,9 +342,6 @@ for iSession = 1:length(DataHolder)
     RewardMagnitude = SessionData.Custom.TrialData.RewardMagnitude(:, 1:nTrials);
     TrialStartTimeStamp = SessionData.TrialStartTimestamp;
     TrialEndTimeStamp = SessionData.TrialEndTimestamp;
-
-    idxTrial = 1:nTrials;
-    SessionColor = [1, 1, 1] * 0.85; % ([1, 1, 1] - iSession / length(DataHolder)) * 0.9;
     
     %% Analysis across trials
     % NoTrialStart Rate across session
@@ -373,7 +350,7 @@ for iSession = 1:length(DataHolder)
                                       'ydata', smooth(movmean(NoTrialStart, [10 9])) * 100,...
                                       'LineStyle', '-',...
                                       'Marker', 'none',...
-                                      'Color', SessionColor);
+                                      'Color', ColourPalette.Session);
     
     NoTrialStartYData(iSession, 1:length(NoTrialStart)) = NoTrialStart * 100;
     
@@ -384,7 +361,7 @@ for iSession = 1:length(DataHolder)
                                     'ydata', smooth(movmean(WithChoiceRate, [10 9])) * 100,...
                                     'LineStyle', '-',...
                                     'Marker', 'none',...
-                                    'Color', SessionColor);
+                                    'Color', ColourPalette.Session);
     
     WithChoiceYData(iSession, 1:length(ChoiceLeft)) = WithChoiceRate * 100;
     
@@ -436,7 +413,7 @@ for iSession = 1:length(DataHolder)
                                                   LeftMoveTime,...
                                                   'SizeData', 5,...
                                                   'Marker', '.',...
-                                                  'MarkerEdgeColor', LRPalette(1,:),...
+                                                  'MarkerEdgeColor', ColourPalette.LeftRight(1,:),...
                                                   'XJitter', 'density',...
                                                   'XJitterWidth', 0.4);
 
@@ -455,7 +432,7 @@ for iSession = 1:length(DataHolder)
                                                    RightMoveTime,...
                                                    'SizeData', 5,...
                                                    'Marker', '.',...
-                                                   'MarkerEdgeColor', LRPalette(2,:),...
+                                                   'MarkerEdgeColor', ColourPalette.LeftRight(2,:),...
                                                    'XJitter', 'density',...
                                                    'XJitterWidth', 0.4);
     
@@ -477,7 +454,7 @@ for iSession = 1:length(DataHolder)
                                             LeftTI,...
                                             'SizeData', 5,...
                                             'Marker', '.',...
-                                            'MarkerEdgeColor', LRPalette(1,:),...
+                                            'MarkerEdgeColor', ColourPalette.LeftRight(1,:),...
                                             'XJitter', 'density',...
                                             'XJitterWidth', 0.4);
 
@@ -496,7 +473,7 @@ for iSession = 1:length(DataHolder)
                                              RightTI,...
                                              'SizeData', 5,...
                                              'Marker', '.',...
-                                             'MarkerEdgeColor', LRPalette(2,:),...
+                                             'MarkerEdgeColor', ColourPalette.LeftRight(2,:),...
                                              'XJitter', 'density',...
                                              'XJitterWidth', 0.4);
 
@@ -526,19 +503,14 @@ for iSession = 1:length(DataHolder)
                                        'xdata', iSession,...
                                        'ydata', sum(SkippedBaited == 1) ./ sum(ActiveTrial == 1) * 100,...
                                        'Marker', '+',...
-                                       'Color', neon_purple);
+                                       'Color', ColourPalette.SkippedBaited);
     
-    % colour palette for cues: (1- P(r)) * 128 + 127
-    % P(0) = white; P(1) = smoky gray
-    RewardProbCategories = unique(RewardProb);
-    CuedPalette = ((1 - RewardProbCategories) * [128 128 128] + 127)/255;
-    
-    LightLeftRight = [LightLeft; 1 - LightLeft];
-    TrialRewardProb = sum(RewardProb .* LightLeftRight, 1);
-    
+    % colour palette
+    ColourPalette = CommonColourPalette(RewardProbCategories);
+
     for iRewardProb = 1:length(RewardProbCategories)
         TargetRewardProb = RewardProbCategories(iRewardProb);
-        Colour = CuedPalette(iRewardProb, :);
+        Colour = ColourPalette.RewardProbLight(iRewardProb, :);
 
         % Cued-sorted Move Time (only correct choice)
         ValidTrial = TrialRewardProb == TargetRewardProb & IncorrectChoice == 0;
@@ -598,7 +570,7 @@ NoTrialStartLine{iSession + 1} = line(NoTrialStartAxes,...
                                       'ydata', smooth(AverageNoTrialStart),...
                                       'LineStyle', '-',...
                                       'Marker', 'none',...
-                                      'Color', 'k');
+                                      'Color', ColourPalette.Pooled);
 
 % WithChoice Rate across session
 AverageWithChoiceRate = WithChoiceYData(1:iSession, :);
@@ -610,7 +582,7 @@ WithChoiceLine{iSession + 1} = line(WithChoiceAxes,...
                                     'ydata', smooth(AverageWithChoiceRate),...
                                     'LineStyle', '-',...
                                     'Marker', 'none',...
-                                    'Color', 'k');
+                                    'Color', ColourPalette.Pooled);
 
 % SkippedBaited Rate across session
 set(SkippedBaitedAxes,...
@@ -622,5 +594,8 @@ disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 DataPath = strcat(DataFolderPath, '\', FigureTitle, '.png');
 exportgraphics(AnalysisFigure, DataPath);
+
+DataPath = strcat(DataFolderPath, '\', FigureTitle, '.fig');
+savefig(AnalysisFigure, DataPath);
 
 end % function

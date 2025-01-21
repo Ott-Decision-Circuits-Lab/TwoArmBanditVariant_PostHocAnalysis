@@ -133,9 +133,12 @@ SE = KatahiraModel.Coefficients.SE;
 PValue = KatahiraModel.Coefficients.pValue;
 Upper95CI = KatahiraModel.Coefficients.Upper;
 Lower95CI = KatahiraModel.Coefficients.Lower;
-
 %{
 DataPath = strcat(DataFolderPath, '\', FigureTitle, '.png');
 exportgraphics(AnalysisFigure, DataPath);
+
+DataPath = strcat(DataFolderPath, '\', FigureTitle, '.fig');
+savefig(AnalysisFigure, DataPath);
+
 %}
 end % function

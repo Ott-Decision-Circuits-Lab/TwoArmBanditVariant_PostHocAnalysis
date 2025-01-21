@@ -1534,4 +1534,7 @@ disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 DataPath = strcat(DataFolderPath, '\', FigureTitle, '.png');
 exportgraphics(AnalysisFigure, DataPath);
 
+DataPath = strcat(DataFolderPath, '\', FigureTitle, '.fig');
+savefig(AnalysisFigure, DataPath);
+
 end % function
