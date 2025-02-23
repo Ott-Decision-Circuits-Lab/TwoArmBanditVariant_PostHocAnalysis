@@ -229,11 +229,8 @@ end
 
 %% Symmetric Q-Learning with Forgetting and Stickiness model
 % Parametric estimation
-LowerBound = [0.10, 6, 0.05, -1,5, 0.5, -0.5];
+LowerBound = [0.10, 6, 0.05, -1.5, 0.5, -0.5];
 UpperBound = [0.45, 10, 0.25, 0.5, 1, 0.5];
-
-clear global
-global nTrials ChoiceLeft Rewarded % <- so that it can be used by the fmincon
 
 % Free parameters
 % 20241220 tested with simulation that works well as initial parameters
@@ -246,9 +243,11 @@ Bias = 0;
 
 InitialParameters = [LearningRate, InverseTemperature, ForgettingRate, ChoiceStickiness, ChoiceForgettingRate, Bias];
 
+CalculateMLE = @(Parameters) ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded);
+
 try
     [EstimatedParameters, MinNegLogDataLikelihood] =...
-        fmincon(@ChoiceSymmetricQLearning, InitialParameters, [], [], [], [], LowerBound, UpperBound);
+        fmincon(CalculateMLE, InitialParameters, [], [], [], [], LowerBound, UpperBound);
 catch
     disp('Error: fail to run model');
     return

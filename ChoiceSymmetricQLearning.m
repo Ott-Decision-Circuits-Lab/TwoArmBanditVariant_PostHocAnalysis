@@ -1,8 +1,7 @@
-function [NegLogDataLikelihood, Values] = ChoiceSymmetricQLearning(Parameters)
+function [NegLogDataLikelihood, Values] = ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded)
 
 % Parameters import
 % fixed variable
-global nTrials ChoiceLeft Rewarded
 
 LearningRate = Parameters(1); % alpha
 InverseTemperature = Parameters(2); % beta

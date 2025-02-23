@@ -82,95 +82,55 @@ Prior.ChoiceForgettingRateBeta = 8;
 Prior.BiasMean = 0; % normal distribution
 Prior.BiasSigma = 1;
 
-Prior.nChain = 4;
-Prior.BurnIn = 200;
-Prior.nSample = 1200;
+Prior.nChain = 1;
+Prior.BurnIn = 1000;
+Prior.nSample = 1000;
 
-for iSession = 1:length(DataHolder)
+Model = {};
+for iSession = 2:length(DataHolder)
     SessionData = DataHolder{iSession};
-
-    % Hamiltonian Monte Carlo as sampling algorithm
-    LearningRate = rand;
-    InverseTemperature = rand * 6 + 5;
-    ForgettingRate = rand;
-    ChoiceStickiness = rand * 2 - 2;
-    ChoiceForgettingRate = rand;
-    Bias = rand * 2 - 1;
     
-    InitialParameters = [LearningRate,...
-                         InverseTemperature,...
-                         ForgettingRate,...
-                         ChoiceStickiness,...
-                         ChoiceForgettingRate,...
-                         Bias];
-    
-    LogPosteriorPDF = @(Parameters)CalculateLogPosteriorChoiceSymmetricQ(Parameters, SessionData, Prior);
-    Sampler = hmcSampler(LogPosteriorPDF, InitialParameters, 'NumSteps', 50);
-    
-    % MAP estimated by L-BFGS
-    [MAPParameters(:, iSession), FitInfo{iSession}] = estimateMAP(Sampler,'VerbosityLevel',0);
-
-    
-    % One is suggested to tune the sampler, but it takes too much time...
-    % The diagnostics function doesn't remove BurnIn...
-    
-    % set initial point of MCMC around MAP estimates
-    InitialParameters = MAPParameters(:,iSession);
-    InitialParameters([1, 3, 5]) = log(InitialParameters([1, 3, 5]) ./ (1 - InitialParameters([1, 3, 5])));
-    InitialParameters = InitialParameters + randn(6, 1);
-    InitialParameters([1, 3, 5]) = 1 ./ (1 + exp(-InitialParameters([1, 3, 5])));
-
-    Chains{iSession} = drawSamples(Sampler, 'Start', InitialParameters,...
-                                   'Burnin', Prior.BurnIn, 'NumSamples', Prior.nSample,...
-                                   'VerbosityLevel', 1, 'NumPrint', 500);
+    Model{iSession} = ModelChoiceSymmetricQWithBayes(SessionData, Prior);
 
     disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 end
 
-% Likelihood calculation
-for iSample = 1:length(nSample - BurnIn)
+%% create figure
+% create figure
+AnalysisFigure = figure('Position', [   0       0    1191     842],... % DIN A3, 72 ppi
+                        'NumberTitle', 'off',...
+                        'Name', strcat(RatName, '_', SessionDateRange, '_', AnalysisName),...
+                        'MenuBar', 'none',...
+                        'Resize', 'off');
 
-    [NegLogDataLikelihood(iSample), ~] = ChoiceSymmetricQLearning(Parameters)
-end
+% spacer for correct saving dimension
+FrameAxes = axes(AnalysisFigure, 'Position', [0 0 1 1]);
+set(FrameAxes,...
+    'XTick', [],...
+    'YTick', [],...
+    'XColor', 'w',...
+    'YColor', 'w')
 
-clear global
-global nTrials ChoiceLeft Rewarded % <- so that it can be used by the fmincon
+% Figure Info
+FigureInfoAxes = axes(AnalysisFigure, 'Position', [0.01    0.98    0.48    0.01]);
+set(FigureInfoAxes,...
+    'XTick', [],...
+    'YTick', [],...
+    'XColor', 'w',...
+    'YColor', 'w')
 
-try
-    [EstimatedParameters, MinNegLogDataLikelihood] =...
-        fmincon(@ChoiceHierarchicalSymmetricQLearning, InitialParameters, [], [], [], [], LowerBound, UpperBound);
-catch
-    disp('Error: fail to run model');
-    return
-end
+FigureTitle = strcat(RatName, '_', SessionDateRange, '_', AnalysisName);
 
-LearningRateAlpha = EstimatedParameters(1); % alpha
-LearningRateBeta = EstimatedParameters(2); % alpha
+FigureTitleText = text(FigureInfoAxes, 0, 0,...
+                       FigureTitle,...
+                       'FontSize', 14,...
+                       'FontWeight','bold',...
+                       'Interpreter', 'none');
 
-InverseTemperatureMean = EstimatedParameters(3); % beta
-InverseTemperatureSigma = EstimatedParameters(4); % beta
+% colour palette
+ColourPalette = CommonColourPalette();
 
-ForgettingRate = EstimatedParameters(3); % gamma
-ChoiceStickiness = EstimatedParameters(4); % phi
-ChoiceForgettingRate = EstimatedParameters(5); % c_gamma
-Bias = EstimatedParameters(6);
-
-[~, Values] = ChoiceSymmetricQLearning(EstimatedParameters);
-LeftValue = Values.LeftValue;
-RightValue = Values.RightValue;
-ChoiceMemory = Values.ChoiceMemory;
-
-LogOdds = InverseTemperature * (LeftValue - RightValue) +...
-          + ChoiceStickiness * ChoiceMemory + Bias;
-
-PredictedLeftChoiceProb = 1 ./ (1 + exp(-LogOdds));
-ModelResiduals = ChoiceLeft - PredictedLeftChoiceProb;
-AbsModelResiduals = abs(ModelResiduals);
-
-
-%% Common plots regardless of task design/ risk type
-ColourPalette = CommonColourPalette(RewardProb);
-
+%%
 PredictedChoice = double(PredictedLeftChoiceProb >= 0.5);
 PredictedChoice(isnan(ChoiceLeft)) = nan;
 SmoothedPredictedChoiceLeft = smooth(PredictedChoice, BinWidth, 'moving','omitnan');
@@ -202,37 +162,6 @@ set(BlockSwitchLegend,...
     'Interpreter', 'latex');
 
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
-
-
-%% create figure
-AnalysisFigure = figure('Position', [   0    0 1191  842],... % DIN A3, 72 ppi (window will crop it to _ x 1024, same as disp resolution)
-                        'NumberTitle', 'off',...
-                        'Name', strcat(RatName, '_', SessionDateTime, '_Matching'),...
-                        'MenuBar', 'none',...
-                        'Resize', 'off');
-
-FrameAxes = axes(AnalysisFigure, 'Position', [0 0 1 1]); % spacer for correct saving dimension
-set(FrameAxes,...
-    'XTick', [],...
-    'YTick', [],...
-    'XColor', 'w',...
-    'YColor', 'w')
-
-%% Figure Info
-FigureInfoAxes = axes(AnalysisFigure, 'Position', [0.01    0.96    0.48    0.01]);
-set(FigureInfoAxes,...
-    'XTick', [],...
-    'YTick', [],...
-    'XColor', 'w',...
-    'YColor', 'w')
-
-FigureTitle = strcat(RatName, '_', SessionDateTime, '_', AnalysisName);
-
-FigureTitleText = text(FigureInfoAxes, 0, 0,...
-                       FigureTitle,...
-                       'FontSize', 14,...
-                       'FontWeight','bold',...
-                       'Interpreter', 'none');
 
 %% Block switching behaviour across session
 BlockSwitchAxes = axes(AnalysisFigure, 'Position', [0.01    0.82    0.37    0.11]);
