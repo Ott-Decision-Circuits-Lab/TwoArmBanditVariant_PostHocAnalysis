@@ -260,7 +260,7 @@ ChoiceStickiness = EstimatedParameters(4); % phi
 ChoiceForgettingRate = EstimatedParameters(5); % c_gamma
 Bias = EstimatedParameters(6);
 
-[~, Values] = ChoiceSymmetricQLearning(EstimatedParameters);
+[~, Values] = ChoiceSymmetricQLearning(EstimatedParameters, nTrials, ChoiceLeft, Rewarded);
 LeftValue = Values.LeftValue;
 RightValue = Values.RightValue;
 ChoiceMemory = Values.ChoiceMemory;
