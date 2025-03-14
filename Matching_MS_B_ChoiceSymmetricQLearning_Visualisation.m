@@ -67,7 +67,7 @@ end
 
 Models = {};
 try
-    load(fullfile(DataFolderPath, '\Matching_MS_B_ChoiceSymmetriQLearning.mat'));
+    load(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')));
 catch
     for iSession = 1:length(DataHolder)
         SessionData = DataHolder{iSession};
@@ -80,7 +80,7 @@ catch
         end
     end
 
-    save(fullfile(DataFolderPath, '\Matching_MS_B_ChoiceSymmetriQLearning.mat'), 'Models')
+    save(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')), 'Models')
     disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 end
 
@@ -542,23 +542,24 @@ for iSession = 1:length(DataHolder)
     
     %% Analysis across sessions
     Model = Models{iSession};
+    Chain = vertcat(Model.Chains{:});
     
-    [ProbDensity, Values] = ksdensity(Model.Chain(:, 1));
+    [ProbDensity, Values] = ksdensity(Chain(:, 1));
     LearningRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Model.Chain(:, 2));
+    [ProbDensity, Values] = ksdensity(Chain(:, 2));
     InverseTemperatureMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Model.Chain(:, 3));
+    [ProbDensity, Values] = ksdensity(Chain(:, 3));
     ForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Model.Chain(:, 4));
+    [ProbDensity, Values] = ksdensity(Chain(:, 4));
     ChoiceStickinessMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Model.Chain(:, 5));
+    [ProbDensity, Values] = ksdensity(Chain(:, 5));
     ChoiceForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Model.Chain(:, 6));
+    [ProbDensity, Values] = ksdensity(Chain(:, 6));
     BiasMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
     MAPEstimates = [LearningRateMAPs(iSession), InverseTemperatureMAPs(iSession), ForgettingRateMAPs(iSession),...

@@ -37,7 +37,7 @@ AnalysisName = 'Matching_MS_MLE_ChoiceSymmetricQLearning';
 %% Symmetric Q-Learning with Forgetting and Stickiness model
 Models = {};
 try
-    load(fullfile(DataFolderPath, '\Matching_MS_MLE_ChoiceSymmetriQLearning.mat'));
+    load(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')));
 catch
     for iSession = 1:length(DataHolder)
         SessionData = DataHolder{iSession};
@@ -50,7 +50,7 @@ catch
         end
     end
 
-    save(fullfile(DataFolderPath, '\Matching_MS_MLE_ChoiceSymmetriQLearning.mat'), 'Models')
+    save(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')), 'Models')
     disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 end
 

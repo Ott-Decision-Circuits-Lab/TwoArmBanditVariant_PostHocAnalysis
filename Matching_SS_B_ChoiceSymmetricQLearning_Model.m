@@ -39,17 +39,17 @@ for iChain = 1:Prior.nChain
     InitialParameters = InitialParameters + randn(6, 1);
     InitialParameters([1, 3, 5]) = 1 ./ (1 + exp(-InitialParameters([1, 3, 5])));
     
-    SamplerInitialParameters{iChain} = InitialParameters;
+    ChainInitialParameters{iChain} = InitialParameters;
     
-    Chain{iChain} = drawSamples(Sampler,...
-                                'Start', SamplerInitialParameters{iChain},...
+    Chains{iChain} = drawSamples(Sampler,...
+                                'Start', ChainInitialParameters{iChain},...
                                 'Burnin', Prior.BurnIn,...
                                 'NumSamples', Prior.nSample,...
                                 'VerbosityLevel', 1,...
                                 'NumPrint', 500);
 end
 
-Diags = diagnostics(Sampler, Chain);
+Diags = diagnostics(Sampler, Chains);
 
 % Parameters = median(Chain);
 % nTrials = SessionData.nTrials;
@@ -65,7 +65,8 @@ Model.SamplerTuningInfo = Info;
 Model.MAPParameters = MAPParameters;
 Model.FitInfo = FitInfo;
 Model.EstimationFlag = EstimationSuccess;
-Model.Chain = Chain;
+Model.ChainInitialParameters = ChainInitialParameters;
+Model.Chains = Chains;
 Model.Diags = Diags;
 % Model.ParametersMedian = Parameters;
 % Model.NegLogDataLikelihood = NegLogDataLikelihood;

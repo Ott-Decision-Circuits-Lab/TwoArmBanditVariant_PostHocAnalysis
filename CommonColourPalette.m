@@ -17,7 +17,7 @@ ColourPalette.Exploit = [93, 58, 155]/255; % violet
 ColourPalette.Session = [1, 1, 1] * 0.85;
 ColourPalette.Pooled = [0, 0, 0];
 
-ColourPalette.RL = [0, 0, 0]/255; % blue
+ColourPalette.RL = [0, 0, 255]/255; % blue
 ColourPalette.GLM = [255, 0, 0]/255; % red
 
 % colour palette for cues: (1- P(r)) * 128 + 127

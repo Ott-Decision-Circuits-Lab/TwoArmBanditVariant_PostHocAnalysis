@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_SS_MLE_ChoiceSymmetricQLearning_Visualisation(DataFile, Model)
+function AnalysisFigure = Matching_SS_B_ChoiceSymmetricQLearning_Visualisation(DataFile, Model)
 % SS = SingleSession
 % MLE = Maximum Log Likelihood
 % Matching Analysis Function
@@ -215,28 +215,35 @@ end
 % model
 if nargin < 2
     try
-        Model = Matching_SS_MLE_ChoiceSymmetricQLearning_Model(SessionData);
+        Model = Matching_SS_B_ChoiceSymmetricQLearning_Model(SessionData);
     catch
         disp('Error: problem in modelling. N further analysis is possible')
         return
     end
 end
 
-EstimatedParameters = Model.EstimatedParameters;
-MinNegLogDataLikelihood = Model.MinNegLogDataLikelihood;
+Chain = vertcat(Model.Chain{:});
 
-if isempty(EstimatedParameters) || isnan(MinNegLogDataLikelihood) 
-    disp('Error: fail to run model');
-    return
-end
+[ProbDensity, Values] = ksdensity(Chain(:, 1));
+LearningRate = Values(ProbDensity == max(ProbDensity));
 
-% extract parameters
-LearningRate = EstimatedParameters(1); % alpha
-InverseTemperature = EstimatedParameters(2); % beta
-ForgettingRate = EstimatedParameters(3); % gamma
-ChoiceStickiness = EstimatedParameters(4); % phi
-ChoiceForgettingRate = EstimatedParameters(5); % c_gamma
-Bias = EstimatedParameters(6);
+[ProbDensity, Values] = ksdensity(Chain(:, 2));
+InverseTemperature = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 3));
+ForgettingRate = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 4));
+ChoiceStickiness = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 5));
+ChoiceForgettingRate = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 6));
+Bias = Values(ProbDensity == max(ProbDensity));
+
+EstimatedParameters = [LearningRate, InverseTemperature, ForgettingRate,...
+                       ChoiceStickiness, ChoiceForgettingRate, Bias];
 
 % make prediction from Model (i.e. estimated parameters)
 [~, Values] = ChoiceSymmetricQLearning(EstimatedParameters, nTrials, ChoiceLeft, Rewarded);
