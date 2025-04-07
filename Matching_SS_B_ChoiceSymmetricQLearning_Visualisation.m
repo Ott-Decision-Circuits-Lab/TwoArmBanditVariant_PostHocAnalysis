@@ -45,7 +45,7 @@ elseif ~strcmpi(SessionData.SettingsFile.GUIMeta.RiskType.String{SessionData.Set
     return
 end
 
-AnalysisName = 'Matching_ChoiceSymmetricQLearning';
+AnalysisName = 'Matching_SS_B_ChoiceSymmetricQLearning';
 
 %% Load related data to local variabels
 RatID = str2double(SessionData.Info.Subject);
@@ -222,7 +222,7 @@ if nargin < 2
     end
 end
 
-Chain = vertcat(Model.Chain{:});
+Chain = vertcat(Model.Chains{:});
 
 [ProbDensity, Values] = ksdensity(Chain(:, 1));
 LearningRate = Values(ProbDensity == max(ProbDensity));

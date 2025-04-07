@@ -1,4 +1,4 @@
-function TwoArmBanditVariant_Matching_MS_Analysis(DataFolderPath)
+function Matching_MS_Analysis(DataFolderPath)
 %{
 MS = MultiSession
 First create on 20230622 by Antonio Lee for AG Ott @HU Berlin

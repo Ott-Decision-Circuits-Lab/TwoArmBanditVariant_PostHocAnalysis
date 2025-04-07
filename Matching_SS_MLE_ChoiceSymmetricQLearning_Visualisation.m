@@ -45,7 +45,7 @@ elseif ~strcmpi(SessionData.SettingsFile.GUIMeta.RiskType.String{SessionData.Set
     return
 end
 
-AnalysisName = 'Matching_ChoiceSymmetricQLearning';
+AnalysisName = 'Matching_SS_MLE_ChoiceSymmetricQLearning';
 
 %% Load related data to local variabels
 RatID = str2double(SessionData.Info.Subject);
