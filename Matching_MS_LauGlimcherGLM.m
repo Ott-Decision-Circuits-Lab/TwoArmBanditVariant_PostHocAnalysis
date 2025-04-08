@@ -264,8 +264,27 @@ set(BlockTransitionAbsResAxes,...
 xlabel(BlockTransitionAbsResAxes, 'iTrial of new block')
 ylabel(BlockTransitionAbsResAxes, 'mean(abs(Residuals))')
 
+% Block transition of abs(residuals)
+BlockTransitionRewRateAxes = axes(AnalysisFigure, 'Position', [0.53    0.06    0.15    0.12]);
+hold(BlockTransitionRewRateAxes, 'on');
+
+Block1To2RewRate = nan(100, 66);
+Block2To3RewRate = nan(100, 66);
+Block3To4RewRate = nan(100, 66);
+Block4To5RewRate = nan(100, 66);
+
+set(BlockTransitionRewRateAxes,...
+    'TickDir', 'out',...
+    'XLim', [-10 50],...
+    'XTick', [0 20 40],...
+    'XTickLabel', [1 21 41],...
+    'YAxisLocation', 'right',...
+    'FontSize', 10);
+xlabel(BlockTransitionRewRateAxes, 'iTrial of new block')
+ylabel(BlockTransitionRewRateAxes, 'mean(Reward Rate)')
+
 % Explore/exploit level against reward rate
-RewardRateAxes = axes(AnalysisFigure, 'Position', [0.53    0.06    0.15    0.12]);
+RewardRateAxes = axes(AnalysisFigure, 'Position', [0.77    0.06    0.15    0.12]);
 hold(RewardRateAxes, 'on');
 
 AllAbsResidual = [];
@@ -275,7 +294,7 @@ set(RewardRateAxes,...
     'TickDir', 'out',...
     'XLim', [0 1],...
     'YLim', [0 100],...
-    'YAxisLocation', 'right',...
+    'YAxisLocation', 'left',...
     'FontSize', 10);
 xlabel(RewardRateAxes, 'abs(Residuals)')
 ylabel(RewardRateAxes, 'Reward rate')
@@ -703,31 +722,6 @@ for iSession = 1:length(DataHolder)
                                            'Color', ColourPalette.Session);
     
     %% Explore/exploit level around block switch
-    % Block 1 transition (1st -> 2nd)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
-    Block1To2Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-    Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-
-    % Block 2 transition (2nd -> 3rd)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
-    Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-    Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-
-    % Block 3 transition (3rd -> 4th)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block3To4Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    end
-
-    % Block 4 transition (4th -> 5th)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block4To5Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    end
-
-    % Explore/exploit level against reward rate
     RewardedMagnitude = sum(RewardMagnitude .* ChoiceLeftRight) .* Rewarded;
     RewardedMagnitude(isnan(RewardedMagnitude)) = 0;
 
@@ -740,6 +734,35 @@ for iSession = 1:length(DataHolder)
                                     RewardedMagnitude(iTrial);
     end
     
+    % Block 1 transition (1st -> 2nd)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
+    Block1To2Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+    Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block1To2RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+
+    % Block 2 transition (2nd -> 3rd)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
+    Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+    Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+
+    % Block 3 transition (3rd -> 4th)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
+        Block3To4Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block3To4RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    end
+
+    % Block 4 transition (4th -> 5th)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
+        Block4To5Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block4To5RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    end
+
+    % Explore/exploit level against reward rate
     AllAbsResidual = [AllAbsResidual, AbsModelResiduals'];
     AllRewardRate = [AllRewardRate, RewardedHistory];
     
@@ -1118,6 +1141,51 @@ Block4To5AbsResMean = mean(Block4To5AbsRes, 'omitnan');
 Block4To5AbsResLine = line(BlockTransitionAbsResAxes,...
                            'xdata', -15:50,...
                            'ydata', movmean(Block4To5AbsResMean, [5, 0]),...
+                           'LineStyle', '-',...
+                           'Marker', 'none',...
+                           'Color', 0.6 * [1 1 1]);
+
+%% Reward Rate around block switch
+% Block 1 transition (1st -> 2nd)
+Block1To2RewRate = Block1To2RewRate(1:iSession, :);
+Block1To2RewRateMean = mean(Block1To2RewRate, 'omitnan');
+
+Block1To2RewRateLine = line(BlockTransitionRewRateAxes,...
+                           'xdata', -15:50,...
+                           'ydata', movmean(Block1To2RewRateMean, [5, 0]),...
+                           'LineStyle', '-',...
+                           'Marker', 'none',...
+                           'Color', 0.0 * [1 1 1]);
+
+% Block 2 transition (2nd -> 3rd)
+Block2To3RewRate = Block2To3RewRate(1:iSession, :);
+Block2To3RewRateMean = mean(Block2To3RewRate, 'omitnan');
+
+Block2To3RewRateLine = line(BlockTransitionRewRateAxes,...
+                           'xdata', -15:50,...
+                           'ydata', movmean(Block2To3RewRateMean, [5, 0]),...
+                           'LineStyle', '-',...
+                           'Marker', 'none',...
+                           'Color', 0.2 * [1 1 1]);
+
+% Block 3 transition (3rd -> 4th)
+Block3To4RewRate = Block3To4RewRate(1:iSession, :);
+Block3To4RewRateMean = mean(Block3To4RewRate, 'omitnan');
+
+Block3To4RewRateLine = line(BlockTransitionRewRateAxes,...
+                           'xdata', -15:50,...
+                           'ydata', movmean(Block3To4RewRateMean, [5, 0]),...
+                           'LineStyle', '-',...
+                           'Marker', 'none',...
+                           'Color', 0.4 * [1 1 1]);
+
+% Block 4 transition (4th -> 5th)
+Block4To5RewRate = Block4To5RewRate(1:iSession, :);
+Block4To5RewRateMean = mean(Block4To5RewRate, 'omitnan');
+
+Block4To5RewRateLine = line(BlockTransitionRewRateAxes,...
+                           'xdata', -15:50,...
+                           'ydata', movmean(Block4To5RewRateMean, [5, 0]),...
                            'LineStyle', '-',...
                            'Marker', 'none',...
                            'Color', 0.6 * [1 1 1]);
