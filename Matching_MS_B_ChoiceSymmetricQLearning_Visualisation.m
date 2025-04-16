@@ -791,31 +791,6 @@ for iSession = 1:length(DataHolder)
                                            'Color', ColourPalette.Session);
     
     %% Explore/exploit level around block switch
-    % Block 1 transition (1st -> 2nd)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
-    Block1To2Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-    Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-
-    % Block 2 transition (2nd -> 3rd)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
-    Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-    Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-
-    % Block 3 transition (3rd -> 4th)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block3To4Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    end
-
-    % Block 4 transition (4th -> 5th)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block4To5Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    end
-
-    % Explore/exploit level against reward rate
     RewardedMagnitude = sum(RewardMagnitude .* ChoiceLeftRight) .* Rewarded;
     RewardedMagnitude(isnan(RewardedMagnitude)) = 0;
 
@@ -828,6 +803,35 @@ for iSession = 1:length(DataHolder)
                                     RewardedMagnitude(iTrial);
     end
     
+    % Block 1 transition (1st -> 2nd)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
+    Block1To2Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+    Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block1To2RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+
+    % Block 2 transition (2nd -> 3rd)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
+    Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+    Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+
+    % Block 3 transition (3rd -> 4th)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
+        Block3To4Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block3To4RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    end
+
+    % Block 4 transition (4th -> 5th)
+    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
+        Block4To5Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block4To5RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    end
+
+    % Explore/exploit level against reward rate
     AllAbsResidual = [AllAbsResidual, AbsModelResiduals];
     AllRewardRate = [AllRewardRate, RewardedHistory];
     
@@ -1239,7 +1243,7 @@ BlockTransitionLegend = legend(BlockTransitionAxes, LegendString,...
 
 %% Abs(Residuals) around block switch
 % Block 1 transition (1st -> 2nd)
-Block1To2AbsRes = Block1To2AbsRes(1:iSession, :);w
+Block1To2AbsRes = Block1To2AbsRes(1:iSession, :);
 Block1To2AbsResMean = mean(Block1To2AbsRes, 'omitnan');
 
 Block1To2AbsResLine = line(BlockTransitionAbsResAxes,...
