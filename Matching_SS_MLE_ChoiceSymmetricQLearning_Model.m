@@ -13,7 +13,7 @@ LearningRate = 0.25; % alpha
 InverseTemperature = 8; % beta
 ForgettingRate = 0.15; % gamma
 ChoiceStickiness = -1; % phi
-ChoiceForgettingRate = 1; % c_gamma
+ChoiceForgettingRate = 1; % gamma_c
 Bias = 0;
 
 InitialParameters = [LearningRate, InverseTemperature, ForgettingRate, ChoiceStickiness, ChoiceForgettingRate, Bias];

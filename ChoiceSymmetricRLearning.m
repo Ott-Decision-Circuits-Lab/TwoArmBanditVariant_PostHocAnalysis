@@ -8,7 +8,7 @@ RLearningRate = Parameters(2); % alpha_r
 InverseTemperature = Parameters(3); % beta
 ForgettingRate = Parameters(4); % gamma
 ChoiceStickiness = Parameters(5); % phi
-ChoiceForgettingRate = Parameters(6); % c_gamma
+ChoiceForgettingRate = Parameters(6); % gamma_c
 Bias = 0; %Parameters(7);
 
 % Q-value initialisation

@@ -235,7 +235,7 @@ LearningRate = EstimatedParameters(1); % alpha
 InverseTemperature = EstimatedParameters(2); % beta
 ForgettingRate = EstimatedParameters(3); % gamma
 ChoiceStickiness = EstimatedParameters(4); % phi
-ChoiceForgettingRate = EstimatedParameters(5); % c_gamma
+ChoiceForgettingRate = EstimatedParameters(5); % gamma_c
 Bias = EstimatedParameters(6);
 
 % make prediction from Model (i.e. estimated parameters)
@@ -347,7 +347,7 @@ ChoiceStickinessText = text(ModelParameterAxes, 0, 3,...
                             'Interpreter', 'tex');
 
 ChoiceForgettingRateText = text(ModelParameterAxes, 0, 2,...
-                                strcat('c_\gamma = ', sprintf('%5.3f', ChoiceForgettingRate)),...
+                                strcat('\gamma_c = ', sprintf('%5.3f', ChoiceForgettingRate)),...
                                 'FontSize', 12,...
                                 'Interpreter', 'tex');
 
