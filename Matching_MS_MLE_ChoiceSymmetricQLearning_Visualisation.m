@@ -454,6 +454,43 @@ xlabel(MTSqrtZScoreDistributionAxes, '')
 title(MTSqrtZScoreDistributionAxes, '');
 %}
 
+% Value-TI GLM Coeff.
+ValueTIGLMAxes = axes(AnalysisFigure, 'Position', [0.56, 0.78, 0.10, 0.16]);
+hold(ValueTIGLMAxes, 'on')
+
+AllTI = [];
+
+AllTIChosenValue = [];
+AllTIUnchosenValue = [];
+AllTIChosenMemory = [];
+
+set(ValueTIGLMAxes,...
+    'TickDir', 'out',...
+    'XLim', [0, 5],...
+    'XTick', [1, 2, 3, 4],...
+    'XTickLabel', {'\beta_0', 'Q_{chosen}', 'Q_{unchosen}', 'm_{chosen}'},...
+    'XTickLabelRotation', 90,...
+    'FontSize', 10);
+ylabel(ValueTIGLMAxes, 'GLM Coeff.')
+title(ValueTIGLMAxes, 'Value-TI');
+
+% Value-sqrt(TI) z-score GLM Coeff.
+ValueTISqrtZScoreGLMAxes = axes(AnalysisFigure, 'Position', [0.68, 0.78, 0.10, 0.16]);
+hold(ValueTISqrtZScoreGLMAxes, 'on')
+
+AllTISqrtZScore = [];
+AllTIRewardRate = [];
+
+set(ValueTISqrtZScoreGLMAxes,...
+    'TickDir', 'out',...
+    'XLim', [0, 5],...
+    'XTick', [1, 2, 3, 4],...
+    'XTickLabel', {'\beta_0', 'Q_{chosen}', 'Q_{unchosen}', 'm_{chosen}'},...
+    'XTickLabelRotation', 90,...
+    'FontSize', 10);
+% ylabel(ValueTISqrtZScoreGLMAxes, 'GLM Coeff.')
+title(ValueTISqrtZScoreGLMAxes, 'Value-sqrt(TI) (z)');
+
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 %% Plotting
@@ -878,6 +915,24 @@ for iSession = 1:length(DataHolder)
                                              'LineStyle', '-',...
                                              'Color', SessionColor);
     %}
+    
+    % Value-TI GLM Coeff. & sqrt(TI) (z)
+    LeftRightValue = [Values.LeftValue; Values.RightValue];
+    LeftRightMemory = [Values.ChoiceMemory; -Values.ChoiceMemory];
+    
+    ChosenValue = sum(LeftRightValue .* ChoiceLeftRight, 1);
+    UnchosenValue = sum(LeftRightValue .* (1 - ChoiceLeftRight), 1);
+    ChosenMemory = sum(LeftRightMemory .* ChoiceLeftRight, 1);
+    
+    FeedbackWaitingTimeSqrtZScore = sum(((sqrt([FeedbackWaitingTime; FeedbackWaitingTime]) - [LeftTIMu; RightTIMu]) ./ [LeftTISigma; RightTISigma]) .* ChoiceLeftRight, 1);
+    
+    AllTI = [AllTI, FeedbackWaitingTime(NotBaited)];
+    AllTISqrtZScore = [AllTISqrtZScore, FeedbackWaitingTimeSqrtZScore(NotBaited)];
+    
+    AllTIRewardRate = [AllTIRewardRate, RewardedHistory(NotBaited)];
+    AllTIChosenValue = [AllTIChosenValue, ChosenValue(NotBaited)];
+    AllTIUnchosenValue = [AllTIUnchosenValue, UnchosenValue(NotBaited)];
+    AllTIChosenMemory = [AllTIChosenMemory, ChosenMemory(NotBaited)];
 end
 
 %% Average across sessions
@@ -1756,6 +1811,45 @@ set(RightExploringMTSqrtZScoreBoxchart,...
     'MarkerStyle', 'none',...
     'LineWidth', 0.2);
 %}
+
+% Value-TI GLM Coeff.
+X = [AllTIChosenValue', AllTIUnchosenValue', AllTIChosenMemory'];
+ValueTIGLM = fitglm(X, AllTI);
+
+ValueTICoeffBar = bar(ValueTIGLMAxes, ValueTIGLM.Coefficients.Estimate, 'w');
+ValueTICoeffErrorbar = errorbar(ValueTIGLMAxes,...
+                                ValueTIGLM.Coefficients.Estimate,...
+                                ValueTIGLM.Coefficients.SE,...
+                                'LineStyle', 'none',...
+                                'Color', 'k');
+
+SignificantLevel = 0.05;
+SignificanceIdx = find(ValueTIGLM.Coefficients.pValue < SignificantLevel);
+ValueTISignificantLine = line(ValueTIGLMAxes,...
+                              SignificanceIdx,...
+                              zeros(size(SignificanceIdx)),...
+                              'LineStyle', 'none',...
+                              'Color', 'k',...
+                              'Marker', '*');
+
+% Value-sqrt(TI) (z) GLM Coeff.
+ValueTISqrtZScoreGLM = fitglm(X, AllTISqrtZScore);
+
+ValueTISqrtZScoreCoeffBar = bar(ValueTISqrtZScoreGLMAxes, ValueTISqrtZScoreGLM.Coefficients.Estimate, 'w');
+ValueTISqrtZScoreCoeffErrorbar = errorbar(ValueTISqrtZScoreGLMAxes,...
+                                          ValueTISqrtZScoreGLM.Coefficients.Estimate,...
+                                          ValueTISqrtZScoreGLM.Coefficients.SE,...
+                                          'LineStyle', 'none',...
+                                          'Color', 'k');
+
+SignificantLevel = 0.05;
+SignificanceIdx = find(ValueTISqrtZScoreGLM.Coefficients.pValue < SignificantLevel);
+ValueTISqrtZScoreSignificantLine = line(ValueTISqrtZScoreGLMAxes,...
+                                        SignificanceIdx,...
+                                        zeros(size(SignificanceIdx)),...
+                                        'LineStyle', 'none',...
+                                        'Color', 'k',...
+                                        'Marker', '*');
 
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
