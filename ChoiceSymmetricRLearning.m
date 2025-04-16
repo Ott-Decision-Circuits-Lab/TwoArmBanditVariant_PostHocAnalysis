@@ -4,7 +4,7 @@ function [NegLogDataLikelihood, Values] = ChoiceSymmetricRLearning(Parameters, n
 % fixed variable
 
 LearningRate = Parameters(1); % alpha
-RLearningRate = Parameters(2); % alpha_r
+RLearningRate = Parameters(1); % alpha_r
 InverseTemperature = Parameters(3); % beta
 ForgettingRate = Parameters(4); % gamma
 ChoiceStickiness = Parameters(5); % phi
@@ -20,7 +20,7 @@ NegLogDataLikelihood = 0;
 
 % Likelihood iteration
 for iTrial = 1:nTrials-1 % <- -1 as raw ChoiceLeft has one pre-allocated nan
-    LogOdds = (8 + InverseTemperature * RValue(iTrial)) * (LeftValue(iTrial) - RightValue(iTrial)) +...
+    LogOdds = (InverseTemperature) * (LeftValue(iTrial) - RightValue(iTrial)) +...
               + ChoiceStickiness * ChoiceMemory(iTrial) + Bias;
     
     RValue(iTrial + 1) = (1 - ForgettingRate) * RValue(iTrial);
