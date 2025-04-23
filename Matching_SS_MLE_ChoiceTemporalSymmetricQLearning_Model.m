@@ -45,6 +45,10 @@ catch
     MinNegLogDataLikelihood = nan;
 end
 
+Model.LowerBound = LowerBound;
+Model.UpperBound = UpperBound;
+Model.InitialParameters = InitialParameters;
+
 Model.EstimatedParameters = EstimatedParameters;
 Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
 
