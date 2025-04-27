@@ -13,9 +13,9 @@ ChoiceForgettingRate = Parameters(7); % gamma_c
 Bias = 0; %Parameters(8);
 
 % Q-value initialisation
-RValue = 0.25;
+RValue = 0;
 LeftValue = 0.25;
-RightValue = 0;
+RightValue = 0.25;
 ChoiceMemory = 0;
 NegLogDataLikelihood = 0;
 
