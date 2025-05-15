@@ -131,27 +131,7 @@ LeftFeedbackDelayGraceTime = LeftFeedbackDelayGraceTime(LeftFeedbackDelayGraceTi
 RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(~isnan(RightFeedbackDelayGraceTime))';
 RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGraceTime < SessionData.SettingsFile.GUI.FeedbackDelayGrace - 0.0001);
 
-%% Common plots regardless of task design/ risk type
-% colour palette for events (suitable for most colourblind people)
-scarlet = [254, 60, 60]/255; % for incorrect sign, contracting with azure
-denim = [31, 54, 104]/255; % mainly for unsuccessful trials
-azure = [0, 162, 254]/255; % for rewarded sign
-
-neon_green = [26, 255, 26]/255; % for NotBaited
-neon_purple = [168, 12, 180]/255; % for SkippedBaited
-
-sand = [225, 190 106]/255; % for left-right
-turquoise = [64, 176, 166]/255;
-LRPalette = [sand; turquoise];
-
-carrot = [230, 97, 0]/255; % explore
-violet = [93, 58, 155]/255; % exploit
-
-% colour palette for cues: (1- P(r)) * 128 + 127
-% P(0) = white; P(1) = smoky gray
-RewardProbCategories = unique(RewardProb);
-CuedPalette = ((1 - RewardProbCategories) * [128 128 128] + 127)/255;
-
+%% Initiatize figure
 % create figure
 if nargin < 2
     FigureSize = [   2,    5,    5,  1.5];
@@ -175,6 +155,9 @@ set(FrameAxes,...
     'XColor', 'none',...
     'YColor', 'none',...
     'Color', 'none')
+
+% colour palette
+ColourPalette = CommonColourPalette();
 
 %% Trial reward rate per second (tau = 45s)
 if nargin < 3
