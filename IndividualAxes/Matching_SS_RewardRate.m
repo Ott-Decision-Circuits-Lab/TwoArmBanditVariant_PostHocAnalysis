@@ -134,7 +134,7 @@ RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGrac
 %% Initiatize figure
 % create figure
 if nargin < 2
-    FigureSize = [   2,    5,    5,  1.5];
+    FigureSize = [   2,    5,    5,  1.8];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -161,7 +161,7 @@ ColourPalette = CommonColourPalette();
 
 %% Trial reward rate per second (tau = 45s)
 if nargin < 3
-    AxeSize = [ 0.8, 0.55, 4.05,  0.90];
+    AxeSize = [ 0.8, 0.55, 4.05,  1.10];
 end
 
 TrialRewardRateInSAxes = axes(AnalysisFigure,...

@@ -134,7 +134,7 @@ RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGrac
 %% Initiatize figure
 % create figure
 if nargin < 3
-    FigureSize = [   2,    5,    5,  1.5];
+    FigureSize = [   2,    5,    5,  1.8];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -208,7 +208,7 @@ PredictedChoice(isnan(ChoiceLeft)) = nan;
 
 %% Total value
 if nargin < 4
-    AxeSize = [ 0.8, 0.55, 4.05,  0.90];
+    AxeSize = [ 0.8, 0.55, 4.05,  1.10];
 end
 
 BlockSwitchAxes = axes(AnalysisFigure,...
@@ -231,7 +231,7 @@ set(BlockSwitchAxes,...
     'YTick', [-5, 0, 5],...
     'FontSize', 10);
 xlabel(BlockSwitchAxes, 'i^{th} Trial')
-ylabel(BlockSwitchAxes,'log(odds)')
+ylabel(BlockSwitchAxes,'Q_{L-R}')
 
 saveas(AnalysisFigure, strcat(RatName, '_', SessionDateTime, '_Matching_LogOdds'), 'svg')
 end
