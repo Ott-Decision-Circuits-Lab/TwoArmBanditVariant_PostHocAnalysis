@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_PL_BackgroundDA_TotalValue(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
+function AnalysisFigure = Matching_MS_PL_BackgroundDA_CorrelationHeatmap(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
 % for making an example of the task structure
 % figure 'unit' set as 'inch' so that we know exactly the meters to pixels
 % Developed by Antonio Lee @ BCCN Berlin
@@ -29,7 +29,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_PL_BackgroundDA_TotalValue';
+AnalysisName = 'Matching_MS_PL_BackgroundDA_CorrelationHeatmap';
 
 %% PhotometryDataset
 if nargin < 2
@@ -111,6 +111,7 @@ UnchosenValue = [];
 ChosenMemory = [];
 LeftValue = [];
 RightValue = [];
+ChosenLogOdds = [];
 
 for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionData = PhotometryDataHolder{iPhotoSession};
@@ -151,7 +152,7 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
 
     SessionLogOdds = InverseTemperatureMAPs * (Values.LeftValue - Values.RightValue) +...
                      + ChoiceStickinessMAPs * Values.ChoiceMemory + BiasMAPs;
-
+    
     SessionLeftValue = Values.LeftValue;
     SessionRightValue = Values.RightValue;
     SessionChoiceMemory = Values.ChoiceMemory;
@@ -159,20 +160,25 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionUnchosenValue = SessionLeftValue .* (1 - ChoiceLeft) + SessionRightValue .* ChoiceLeft;
     SessionChosenMemory = SessionChoiceMemory .* ChoiceLeft - SessionChoiceMemory .* (1 - ChoiceLeft);
     
+    SessionChosenLogOdds = InverseTemperatureMAPs * (SessionChosenValue - SessionUnchosenValue) +...
+                           + ChoiceStickinessMAPs * SessionChosenMemory + BiasMAPs .* (2 * ChoiceLeft - 1);
+
     LeftValue = [LeftValue, SessionLeftValue];
     RightValue = [RightValue, SessionRightValue];
     LogOdds = [LogOdds, SessionLogOdds];
     ChosenValue = [ChosenValue, SessionChosenValue];
     UnchosenValue = [UnchosenValue, SessionUnchosenValue];
     ChosenMemory = [ChosenMemory, SessionChosenMemory];
+    ChosenLogOdds = [ChosenLogOdds, SessionChosenLogOdds];
 end
 
 TotalValue = ChosenValue + UnchosenValue;
+DiffValue = ChosenValue - UnchosenValue;
 
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [   2,    5,    3,  2.8];
+    FigureSize = [2.0, 5.0, 5.7, 4.5];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -222,68 +228,89 @@ catch
 end
 dFEstimation = dFEstimation';
 
-%% Background DA vs Total value
+%% Background DA vs Chosen value
 if nargin < 5
-    AxeSize = [ 0.7, 0.6,    2,    2];
+    AxeSize = [ 1.5, 1.1, 3.2, 3.0];
 end
 
-BackgroundDATotalValueAxes = axes(AnalysisFigure,...
-                                  'Position', AxeSize,...
-                                  'Units', 'inches',...
-                                  'Color', 'none');
-set(BackgroundDATotalValueAxes,...
+BackgroundDACorrelationAxes = axes(AnalysisFigure,...
+                                   'Position', AxeSize,...
+                                   'Units', 'inches',...
+                                   'Color', 'none');
+set(BackgroundDACorrelationAxes,...
     'Position', AxeSize,...
-    'Units', 'inches');
-hold(BackgroundDATotalValueAxes, 'on');
+    'Units', 'inches',...
+    'XColor', 'none',...
+    'YColor', 'none',...
+    'YDir', 'reverse');
+hold(BackgroundDACorrelationAxes, 'on');
 
-ValidIdx = ~isnan(TotalValue) & ~isnan(dFEstimation);
+Data = [dFEstimation', TotalValue', ChosenValue', DiffValue', ChosenLogOdds'];
+ValidIdx = ~isnan(ChosenValue) & ~isnan(dFEstimation);
 
-BackgroundDATotalValueScatter = scatter(BackgroundDATotalValueAxes, TotalValue(ValidIdx), dFEstimation(ValidIdx),...
-                                        'Marker', '.',...
-                                        'MarkerEdgeColor', 'k',...
-                                        'SizeData', 1);
+[RValues, pValues] = corr(Data(ValidIdx, :));
+IsUpper = logical(triu(ones(size(RValues)),1));
+RValues(IsUpper) = NaN;
+pValues(IsUpper) = NaN;
 
-[RValue, pValue] = corrcoef(TotalValue(ValidIdx), dFEstimation(ValidIdx));
+BackgroundDACorrelationImagesc = imagesc(BackgroundDACorrelationAxes, RValues);
 
-pValueSymbol = '';
-if pValue(1, 2) < 0.001
-    pValueSymbol = '***';
-elseif pValue(1, 2) < 0.01
-    pValueSymbol = '**';
-elseif pValue(1, 2) < 0.05
-    pValueSymbol = '*';
+ColourMap = othercolor('Greys9', 128); % ColourMap, function from helper folder
+ColourBar = colormap(BackgroundDACorrelationAxes, ColourMap, 'TickDir', 'out');
+set(ColourBar,...
+    'TickDir', 'out')
+
+Labels = {"dF/F", "sum(V)", "V_{chosen}", "V_{chosen-unchosen}", "Q_{chosen-unchosen}"};
+
+set(BackgroundDACorrelationAxes,...
+    'FontSize', 12,...
+    'XLim', [0.5, 5.5],...
+    'XTick', 1:5,...
+    'XTickLabel', Labels,...
+    'YLim', [0.5, 5.5],...
+    'YTick', 1:5,...
+    'YTickLabel', Labels);
+
+ColourBar = colorbar(BackgroundDACorrelationAxes);
+set(ColourBar,...
+    'FontSize', 12)
+ylabel(ColourBar, 'R value')
+set(BackgroundDACorrelationAxes,...
+    'Position', AxeSize)
+
+nVar = height(RValues);
+for iRow = 1:nVar
+    for jColumn = 1:nVar
+        if isnan(RValues(iRow, jColumn))
+            continue
+        end
+
+        pValueSymbol = '';
+        if pValues(iRow, jColumn) < 0.001
+            pValueSymbol = '***';
+        elseif pValues(iRow, jColumn) < 0.01
+            pValueSymbol = '**';
+        elseif pValues(iRow, jColumn) < 0.05
+            pValueSymbol = '*';
+        end
+        
+        TextColour = [0, 0, 0];
+        if RValues(iRow, jColumn) > 0.5
+            TextColour = [1, 1, 1];
+        end
+
+        text(BackgroundDACorrelationAxes, jColumn, iRow,... %index for array is flipped than x-y coordinates
+             strcat(sprintf('%4.2f',...
+                            RValues(iRow, jColumn)),...
+                    pValueSymbol),...
+             'FontSize', 12,...
+             'Color', TextColour,...
+             'HorizontalAlignment', 'center');
+    end
 end
 
-BackgroundDATotalValueStatText = text(BackgroundDATotalValueAxes, 0.1, 0.2,...
-                                      strcat(sprintf('R = %4.2f',...
-                                                     RValue(1, 2)),...
-                                             pValueSymbol,...
-                                             sprintf('\nn = %5.0f (%2.0f sessions)',...
-                                                     sum(ValidIdx),...
-                                                     length(PhotometryDataHolder))),...
-                                      'Units','inches',...
-                                      'FontSize', 12,...
-                                      'Color', 'k');
+title(BackgroundDACorrelationAxes,...
+      strcat('n = ', num2str(sum(ValidIdx)), ' (', num2str(iPhotoSession), ' session, 1 rat)'))
 
-X = [ones(1, sum(ValidIdx)); TotalValue(ValidIdx)]';
-b = X \ dFEstimation(ValidIdx)';
-
-XData = [0, 0.6];
-YData = XData * b(2) + b(1);
-
-BackgroundDATotalValueRegressionLine = line(BackgroundDATotalValueAxes, XData, YData,...
-                                            'Color', 'k',...
-                                            'LineWidth', 1);
-
-set(BackgroundDATotalValueAxes,...
-    'TickDir', 'out',...
-    'XLim', [0, 0.6],...
-    'XTick', [0, 0.2, 0.4, 0.6],...
-    'YLim', [-20, 20],...
-    'YTick', [-20, 0, 20],...
-    'FontSize', 12);
-xlabel(BackgroundDATotalValueAxes, 'sum(V) (a.u.)')
-ylabel(BackgroundDATotalValueAxes, sprintf('Baseline dopamine (dF/F)'))
-
-saveas(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName), 'svg')
+exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end
