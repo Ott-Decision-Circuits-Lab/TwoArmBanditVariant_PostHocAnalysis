@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_PL_BackgroundDA_TotalValue(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
+function AnalysisFigure = Matching_MS_PL_TimeInvestment_ChosenLogOdds(DataFolderPath, ModelsFilePath, FigureSize, AxeSize)
 % for making an example of the task structure
 % figure 'unit' set as 'inch' so that we know exactly the meters to pixels
 % Developed by Antonio Lee @ BCCN Berlin
@@ -14,7 +14,7 @@ end
 
 try
     load(fullfile(DataFolderPath, '\Selected_Data.mat')); % should be 'DataHolder' as variable name
-    load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
+    % load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
 catch
     disp('Error: Selected DataFolderPath does not contain the required .mat for further steps.')
     return
@@ -29,42 +29,10 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_PL_BackgroundDA_TotalValue';
-
-%% PhotometryDataset
-if nargin < 2
-    AnimalDataFolder = fileparts(fileparts(fileparts(DataFolderPath)));
-    PhotometryDatasetFilePath = fullfile(AnimalDataFolder, 'photometry', 'dataset');
-
-    if ~isdir(PhotometryDatasetFilePath)
-        disp('Error: No Photometry DatasetObject is found.')
-        return
-    end
-
-    [PhotometryDatasetFileName, PhotometryDatasetFilePath] = uigetfile(PhotometryDatasetFilePath);
-    
-    if ~strcmpi(AnimalDataFolder, fileparts(fileparts(fileparts(PhotometryDatasetFilePath))))
-        disp('Error: PhotometryDataset unlikely for the SessionDataset. Make sure they are in the adjacent directory')
-        return
-    end
-    
-    PhotometryDatasetFilePath = fullfile(PhotometryDatasetFilePath, PhotometryDatasetFileName);
-end
-
-try
-    load(PhotometryDatasetFilePath); % should be 'DatasetObject' as variable name
-catch
-    disp('Error: Problem in loading PhotometryDatasetFilePath.')
-    return
-end
-
-if exist('DatasetObject', 'var') == 0
-    disp('Error: Loaded file is not a PhotometryDataset.')
-    return
-end
+AnalysisName = 'Matching_MS_PL_TimeInvestment_ChosenValue';
 
 %% Bayesian Symmetric Q-Learning with Forgetting and Stickiness model
-if nargin < 3
+if nargin < 2
     [ModelsFileName, ModelsFilePath] = uigetfile(DataFolderPath);
     
     if ~strcmpi(ModelsFilePath, DataFolderPath)
@@ -87,34 +55,23 @@ if exist('Models', 'var') == 0
     return
 end
 
-%% Filter out SessionData and Model for PhotometrySession
-% not the most elegant way to filter session...ideally based on Photometry
-% Dataset to select the SessionData from DataHolder
-PhotometryDataHolder = {};
-PhotometryModels = {};
-for iSession = 1:length(DataHolder)
-    if isfield(DataHolder{iSession}.Custom.SessionMeta, 'PhotometryValidation') && strcmpi(DataHolder{iSession}.Custom.SessionMeta.PhotometryBrainArea(end-1:end), 'PL') && DataHolder{iSession}.nTrials > 250
-        PhotometryDataHolder = [PhotometryDataHolder, DataHolder(iSession)];
-        PhotometryModels = [PhotometryModels, Models(iSession)];
-    end
-end
-
-if length(PhotometryDataHolder) ~= height(DatasetObject.ProcessedPhotometryData)
-    disp('Error: Mismatched nSessions between PhotometryDatasetObject and FilteredPhotometrySession from SessionData')
-    return
-end
-
 %% Load related data to local variabels
+TimeInvestment = [];
+TimeInvestmentZScore = [];
+TimeInvestmentSqrtZScore = [];
+Choices = [];
+
 LogOdds = [];
 ChosenValue = [];
 UnchosenValue = [];
 ChosenMemory = [];
 LeftValue = [];
 RightValue = [];
+ChosenLogOdds = [];
 
-for iPhotoSession = 1:length(PhotometryDataHolder)
-    SessionData = PhotometryDataHolder{iPhotoSession};
-    Model = PhotometryModels{iPhotoSession};
+for iSession = 1:length(DataHolder)
+    SessionData = DataHolder{iSession};
+    Model = Models{iSession};
 
     nTrials = SessionData.nTrials;
     TrialData = SessionData.Custom.TrialData;
@@ -151,7 +108,7 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
 
     SessionLogOdds = InverseTemperatureMAPs * (Values.LeftValue - Values.RightValue) +...
                      + ChoiceStickinessMAPs * Values.ChoiceMemory + BiasMAPs;
-
+    
     SessionLeftValue = Values.LeftValue;
     SessionRightValue = Values.RightValue;
     SessionChoiceMemory = Values.ChoiceMemory;
@@ -159,20 +116,51 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionUnchosenValue = SessionLeftValue .* (1 - ChoiceLeft) + SessionRightValue .* ChoiceLeft;
     SessionChosenMemory = SessionChoiceMemory .* ChoiceLeft - SessionChoiceMemory .* (1 - ChoiceLeft);
     
+    SessionChosenLogOdds = InverseTemperatureMAPs * (SessionChosenValue - SessionUnchosenValue) +...
+                           + ChoiceStickinessMAPs * SessionChosenMemory + BiasMAPs .* (2 * ChoiceLeft - 1);
+    
     LeftValue = [LeftValue, SessionLeftValue];
     RightValue = [RightValue, SessionRightValue];
     LogOdds = [LogOdds, SessionLogOdds];
     ChosenValue = [ChosenValue, SessionChosenValue];
     UnchosenValue = [UnchosenValue, SessionUnchosenValue];
     ChosenMemory = [ChosenMemory, SessionChosenMemory];
+    ChosenLogOdds = [ChosenLogOdds, SessionChosenLogOdds];
+
+
+    SessionTimeInvestment = FeedbackWaitingTime;
+    SessionTimeInvestment(~NotBaited) = nan;
+    TimeInvestment = [TimeInvestment, SessionTimeInvestment];
+    
+    LeftTITrial = NotBaited & ChoiceLeft == 1;
+    RightTITrial = NotBaited & ChoiceLeft == 0;
+    LeftTI = FeedbackWaitingTime(LeftTITrial);
+    RightTI = FeedbackWaitingTime(RightTITrial);
+    
+    [~, LeftTIMu, LeftTISigma] = zscore(LeftTI);
+    [~, RightTIMu, RightTISigma] = zscore(RightTI);
+    
+    SessionTimeInvestmentZScore = sum((([FeedbackWaitingTime; FeedbackWaitingTime] - [LeftTIMu; RightTIMu]) ./ [LeftTISigma; RightTISigma]) .* ChoiceLeftRight, 1);
+    SessionTimeInvestmentZScore(~NotBaited) = nan;
+    TimeInvestmentZScore = [TimeInvestmentZScore, SessionTimeInvestmentZScore];
+
+    [~, LeftTIMu, LeftTISigma] = zscore(sqrt(LeftTI));
+    [~, RightTIMu, RightTISigma] = zscore(sqrt(RightTI));
+    
+    SessionTimeInvestmentSqrtZScore = sum(((sqrt([FeedbackWaitingTime; FeedbackWaitingTime]) - [LeftTIMu; RightTIMu]) ./ [LeftTISigma; RightTISigma]) .* ChoiceLeftRight, 1);
+    SessionTimeInvestmentSqrtZScore(~NotBaited) = nan;
+    TimeInvestmentSqrtZScore = [TimeInvestmentSqrtZScore, SessionTimeInvestmentSqrtZScore];
+
+    Choices = [Choices, ChoiceLeft];
 end
 
 TotalValue = ChosenValue + UnchosenValue;
+DiffValue = ChosenValue - UnchosenValue;
 
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [   2,    5,    3,  2.8];
+    FigureSize = [0.2, 2.0, 5.0, 5.6];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -197,53 +185,27 @@ set(FrameAxes,...
 % colour palette
 ColourPalette = CommonColourPalette();
 
-%% dF/F from DatasetObject
-ChannelName = 'GreenC';
-AlignmentName = 'TimeTrialStart';
-AlignmentWindow = [0, 2];
-
-[AlignedDemodData,...
- AlignedBaselineData,...
- AlignedTime] = DatasetObject.AlignData('Channel', ChannelName,...
-                                        'Alignment', AlignmentName, ...
-                                        'AlignmentWindow', AlignmentWindow);
-
-% Prepare AlignData for plotting
-NormalisedPreAlignedPhotometryData = (AlignedDemodData ./ AlignedBaselineData - 1) * 100;
-
-% Estimate dF
-EstimatingFunction = str2func('median');
-
-try
-    dFEstimation = EstimatingFunction(NormalisedPreAlignedPhotometryData , 2);
-catch
-    disp('Error: Incompatible estimating function for photometry data of nTrial x length of recording')
-    return
-end
-dFEstimation = dFEstimation';
-
-%% Background DA vs Total value
+%% TI (z) vs Q
 if nargin < 5
-    AxeSize = [ 0.7, 0.6,    2,    2];
+    AxeSize = [ 1.3, 1.3, 2.3, 3.5];
 end
 
-BackgroundDATotalValueAxes = axes(AnalysisFigure,...
-                                  'Position', AxeSize,...
-                                  'Units', 'inches',...
-                                  'Color', 'none');
-set(BackgroundDATotalValueAxes,...
+TimeInvestmentLogOddsAxes = axes(AnalysisFigure,...
+                                 'Position', AxeSize,...
+                                 'Units', 'inches',...
+                                 'Color', 'none');
+set(TimeInvestmentLogOddsAxes,...
     'Position', AxeSize,...
     'Units', 'inches');
-hold(BackgroundDATotalValueAxes, 'on');
+hold(TimeInvestmentLogOddsAxes, 'on');
 
-ValidIdx = ~isnan(TotalValue) & ~isnan(dFEstimation);
+ValidIdx = ~isnan(ChosenValue) & ~isnan(TimeInvestment);
+TimeInvestmentLogOddsScatter = scatter(TimeInvestmentLogOddsAxes, ChosenLogOdds(ValidIdx), TimeInvestmentZScore(ValidIdx),...
+                                       'Marker', '.',...
+                                       'MarkerEdgeColor', 'k',...
+                                       'SizeData', 1);
 
-BackgroundDATotalValueScatter = scatter(BackgroundDATotalValueAxes, TotalValue(ValidIdx), dFEstimation(ValidIdx),...
-                                        'Marker', '.',...
-                                        'MarkerEdgeColor', 'k',...
-                                        'SizeData', 1);
-
-[RValue, pValue] = corrcoef(TotalValue(ValidIdx), dFEstimation(ValidIdx));
+[RValue, pValue] = corrcoef(ChosenLogOdds(ValidIdx), TimeInvestmentZScore(ValidIdx));
 
 pValueSymbol = '';
 if pValue(1, 2) < 0.001
@@ -254,36 +216,36 @@ elseif pValue(1, 2) < 0.05
     pValueSymbol = '*';
 end
 
-BackgroundDATotalValueStatText = text(BackgroundDATotalValueAxes, 0.1, 0.2,...
-                                      strcat(sprintf('R = %4.2f',...
-                                                     RValue(1, 2)),...
-                                             pValueSymbol,...
-                                             sprintf('\nn = %5.0f (%2.0f sessions)',...
-                                                     sum(ValidIdx),...
-                                                     length(PhotometryDataHolder))),...
-                                      'Units','inches',...
-                                      'FontSize', 24,...
-                                      'Color', 'k');
+TimeInvestmentLogOddsStatText = text(TimeInvestmentLogOddsAxes, 0.1, 0.2,...
+                                     strcat(sprintf('R = %4.2f',...
+                                                    RValue(1, 2)),...
+                                            pValueSymbol),...
+                                     'Units','inches',...
+                                     'FontSize', 24,...
+                                     'Color', 'k');
 
-X = [ones(1, sum(ValidIdx)); TotalValue(ValidIdx)]';
-b = X \ dFEstimation(ValidIdx)';
+Model = fitlm(ChosenLogOdds(ValidIdx)', TimeInvestmentZScore(ValidIdx)');
 
-XData = [0, 0.6];
-YData = XData * b(2) + b(1);
+XData = -5:0.5:5.0;
+[YHat, YCI] = predict(Model, XData');
 
-BackgroundDATotalValueRegressionLine = line(BackgroundDATotalValueAxes, XData, YData,...
-                                            'Color', 'k',...
-                                            'LineWidth', 1);
+TimeInvestmentLogOddsRegressionLine = line(TimeInvestmentLogOddsAxes, XData, YHat,...
+                                           'Color', 'k',...
+                                           'LineWidth', 1);
 
-set(BackgroundDATotalValueAxes,...
-    'TickDir', 'out',...
-    'XLim', [0, 0.6],...
-    'XTick', [0, 0.2, 0.4, 0.6],...
-    'YLim', [-20, 20],...
-    'YTick', [-20, 0, 20],...
-    'FontSize', 24);
-xlabel(BackgroundDATotalValueAxes, 'Reward rate (a.u.)')
-ylabel(BackgroundDATotalValueAxes, sprintf('Baseline dopamine (dF/F)'))
+TimeInvestmentLogOddsRegressionCILine = line(TimeInvestmentLogOddsAxes, XData, YCI,...
+                                             'Color', 'k',...
+                                             'LineStyle', ':',...
+                                             'LineWidth', 1);
+
+set(TimeInvestmentLogOddsAxes,...
+    'FontSize', 24,...
+    'XLim', [-5, 5],...
+    'YLim', [-5, 5]);
+xlabel(TimeInvestmentLogOddsAxes, 'Q_{chosen} (a.u.)')
+ylabel(TimeInvestmentLogOddsAxes, 'Time investment (z)')
+title(TimeInvestmentLogOddsAxes,...
+      sprintf(strcat('n=', num2str(sum(ValidIdx)), '(', num2str(iSession), ', 1)')))
 
 exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end

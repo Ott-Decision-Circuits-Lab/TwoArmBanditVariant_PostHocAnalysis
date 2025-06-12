@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_PL_BackgroundDA_CorrelationHeatmap(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
+function AnalysisFigure = Matching_MS_PL_TimeInvestment_RewardRate_GLM(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
 % for making an example of the task structure
 % figure 'unit' set as 'inch' so that we know exactly the meters to pixels
 % Developed by Antonio Lee @ BCCN Berlin
@@ -29,8 +29,9 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_PL_BackgroundDA_CorrelationHeatmap';
+AnalysisName = 'Matching_MS_PL_TimeInvestment_RewardRate_GLM';
 
+%{
 %% PhotometryDataset
 if nargin < 2
     AnimalDataFolder = fileparts(fileparts(fileparts(DataFolderPath)));
@@ -62,7 +63,7 @@ if exist('DatasetObject', 'var') == 0
     disp('Error: Loaded file is not a PhotometryDataset.')
     return
 end
-
+%}
 %% Bayesian Symmetric Q-Learning with Forgetting and Stickiness model
 if nargin < 3
     [ModelsFileName, ModelsFilePath] = uigetfile(DataFolderPath);
@@ -87,6 +88,7 @@ if exist('Models', 'var') == 0
     return
 end
 
+%{
 %% Filter out SessionData and Model for PhotometrySession
 % not the most elegant way to filter session...ideally based on Photometry
 % Dataset to select the SessionData from DataHolder
@@ -103,8 +105,14 @@ if length(PhotometryDataHolder) ~= height(DatasetObject.ProcessedPhotometryData)
     disp('Error: Mismatched nSessions between PhotometryDatasetObject and FilteredPhotometrySession from SessionData')
     return
 end
+%}
 
 %% Load related data to local variabels
+TimeInvestment = [];
+TimeInvestmentZScore = [];
+TimeInvestmentSqrtZScore = [];
+Choices = [];
+
 LogOdds = [];
 ChosenValue = [];
 UnchosenValue = [];
@@ -112,10 +120,11 @@ ChosenMemory = [];
 LeftValue = [];
 RightValue = [];
 ChosenLogOdds = [];
+ChosenBias = [];
 
-for iPhotoSession = 1:length(PhotometryDataHolder)
-    SessionData = PhotometryDataHolder{iPhotoSession};
-    Model = PhotometryModels{iPhotoSession};
+for iSession = 1:length(DataHolder)
+    SessionData = DataHolder{iSession};
+    Model = Models{iSession};
 
     nTrials = SessionData.nTrials;
     TrialData = SessionData.Custom.TrialData;
@@ -160,8 +169,8 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionUnchosenValue = SessionLeftValue .* (1 - ChoiceLeft) + SessionRightValue .* ChoiceLeft;
     SessionChosenMemory = SessionChoiceMemory .* ChoiceLeft - SessionChoiceMemory .* (1 - ChoiceLeft);
     
-    SessionChosenLogOdds = InverseTemperatureMAPs * (SessionChosenValue - SessionUnchosenValue) +...
-                           + ChoiceStickinessMAPs * SessionChosenMemory + BiasMAPs .* (2 * ChoiceLeft - 1);
+    SessionChosenLogOdds = SessionLogOdds .* ChoiceLeft - SessionLogOdds .* (1 - ChoiceLeft);
+    SessionChosenBias = BiasMAPs .* ChoiceLeft - BiasMAPs .* (1 - ChoiceLeft);
 
     LeftValue = [LeftValue, SessionLeftValue];
     RightValue = [RightValue, SessionRightValue];
@@ -170,6 +179,32 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
     UnchosenValue = [UnchosenValue, SessionUnchosenValue];
     ChosenMemory = [ChosenMemory, SessionChosenMemory];
     ChosenLogOdds = [ChosenLogOdds, SessionChosenLogOdds];
+    ChosenBias = [ChosenBias, SessionChosenBias];
+
+    SessionTimeInvestment = FeedbackWaitingTime;
+    SessionTimeInvestment(~NotBaited) = nan;
+    TimeInvestment = [TimeInvestment, SessionTimeInvestment];
+    
+    LeftTITrial = NotBaited & ChoiceLeft == 1;
+    RightTITrial = NotBaited & ChoiceLeft == 0;
+    LeftTI = FeedbackWaitingTime(LeftTITrial);
+    RightTI = FeedbackWaitingTime(RightTITrial);
+    
+    [~, LeftTIMu, LeftTISigma] = zscore(LeftTI);
+    [~, RightTIMu, RightTISigma] = zscore(RightTI);
+    
+    SessionTimeInvestmentZScore = sum((([FeedbackWaitingTime; FeedbackWaitingTime] - [LeftTIMu; RightTIMu]) ./ [LeftTISigma; RightTISigma]) .* ChoiceLeftRight, 1);
+    SessionTimeInvestmentZScore(~NotBaited) = nan;
+    TimeInvestmentZScore = [TimeInvestmentZScore, SessionTimeInvestmentZScore];
+
+    [~, LeftTIMu, LeftTISigma] = zscore(sqrt(LeftTI));
+    [~, RightTIMu, RightTISigma] = zscore(sqrt(RightTI));
+    
+    SessionTimeInvestmentSqrtZScore = sum(((sqrt([FeedbackWaitingTime; FeedbackWaitingTime]) - [LeftTIMu; RightTIMu]) ./ [LeftTISigma; RightTISigma]) .* ChoiceLeftRight, 1);
+    SessionTimeInvestmentSqrtZScore(~NotBaited) = nan;
+    TimeInvestmentSqrtZScore = [TimeInvestmentSqrtZScore, SessionTimeInvestmentSqrtZScore];
+
+    Choices = [Choices, ChoiceLeft];
 end
 
 TotalValue = ChosenValue + UnchosenValue;
@@ -178,7 +213,7 @@ DiffValue = ChosenValue - UnchosenValue;
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [0.2, 0.5, 8.0, 6.8];
+    FigureSize = [0.2, 2.0, 4.2, 4.8];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -204,9 +239,10 @@ set(FrameAxes,...
 ColourPalette = CommonColourPalette();
 
 %% dF/F from DatasetObject
+%{
 ChannelName = 'GreenC';
-AlignmentName = 'TimeTrialStart';
-AlignmentWindow = [0, 2];
+AlignmentName = 'TimeChoice';
+AlignmentWindow = [-2, 0];
 
 [AlignedDemodData,...
  AlignedBaselineData,...
@@ -227,102 +263,63 @@ catch
     return
 end
 dFEstimation = dFEstimation';
-
-dFEstimationZScore = [];
-FirstTrialIdx = 1;
-for iSession = 1:length(PhotometryDataHolder)
-    SessionData = PhotometryDataHolder{iSession};
-    nTrials = SessionData.nTrials;
-    
-    SessiondFEstimation = dFEstimation(FirstTrialIdx:FirstTrialIdx + nTrials - 1);
-    SessiondFEstimationZScore = zscore(SessiondFEstimation);
-    dFEstimationZScore = [dFEstimationZScore, SessiondFEstimationZScore];
-
-    FirstTrialIdx = FirstTrialIdx + nTrials;
-end
-
-%% Background DA vs Chosen value
+%}
+%% TI  ~ Q + R
 if nargin < 5
-    AxeSize = [ 2.1, 2.0, 4.2, 4.0];
+    AxeSize = [ 1.2, 2.0, 2.9, 2.0];
 end
 
-BackgroundDACorrelationAxes = axes(AnalysisFigure,...
-                                   'Position', AxeSize,...
-                                   'Units', 'inches',...
-                                   'Color', 'none');
-set(BackgroundDACorrelationAxes,...
+GLMCoeffAxes = axes(AnalysisFigure,...
+                    'Position', AxeSize,...
+                    'Units', 'inches',...
+                    'Color', 'none');
+set(GLMCoeffAxes,...
     'Position', AxeSize,...
-    'Units', 'inches',...
-    'YDir', 'reverse');
-hold(BackgroundDACorrelationAxes, 'on');
+    'Units', 'inches');
+hold(GLMCoeffAxes, 'on');
 
-Data = [dFEstimationZScore', TotalValue', ChosenValue', DiffValue', ChosenLogOdds'];
-ValidIdx = ~isnan(ChosenLogOdds) & ~isoutlier(dFEstimationZScore);
+XData = [ChosenLogOdds', TotalValue'];
+YData = TimeInvestmentZScore;
+ValidIdx = ~isnan(ChosenValue) & ~isnan(YData);
 
-[RValues, pValues] = corr(Data(ValidIdx, :));
-IsUpper = logical(triu(ones(size(RValues)),1));
-RValues(IsUpper) = NaN;
-pValues(IsUpper) = NaN;
+GLM = fitglm(XData(ValidIdx, :), YData(ValidIdx));
 
-BackgroundDACorrelationImagesc = imagesc(BackgroundDACorrelationAxes, RValues);
+GLMCoeffBar = bar(GLMCoeffAxes, GLM.Coefficients.Estimate,...
+                  'FaceColor', 'none');
+GLMCoeffErrorbar = errorbar(GLMCoeffAxes,...
+                            GLM.Coefficients.Estimate,...
+                            GLM.Coefficients.SE,...
+                            'LineStyle', 'none',...
+                            'Color', 'k');
 
-ColourMap = othercolor('Greys9', 128); % ColourMap, function from helper folder
-colormap(BackgroundDACorrelationAxes, ColourMap);
+pValues = GLM.Coefficients.pValue;
+for iCoeff = 1:length(pValues)
+    pValueSymbol = "";
+    if pValues(iCoeff) < 0.001
+        pValueSymbol = "***";
+    elseif pValues(iCoeff) < 0.01
+        pValueSymbol = "**";
+    elseif pValues(iCoeff) < 0.05
+        pValueSymbol = "*";
+    end
 
-ColourBar = colorbar(BackgroundDACorrelationAxes);
-set(ColourBar,...
+    text(GLMCoeffAxes, iCoeff, 1.5, pValueSymbol,...
+         'FontSize', 24,...
+         'HorizontalAlignment', 'center')
+end
+
+Labels = {"Intercept", "Q_{chosen}", "Reward rate"};
+
+set(GLMCoeffAxes,...
     'FontSize', 24,...
-    'TickDirection', 'out')
-ylabel(ColourBar, 'Correlation coefficient')
-
-Labels = {"dF/F (z)", "Reward rate", "V_{chosen}", "\Delta(V)", "Choice value"};
-
-set(BackgroundDACorrelationAxes,...
-    'FontSize', 24,...
-    'XLim', [0.5, 5.5],...
-    'XTick', 1:5,...
+    'XLim', [0, 4],...
+    'XTick', 1:3,...
     'XTickLabel', Labels,...
     'XTickLabelRotation', 90,...
-    'YLim', [0.5, 5.5],...
-    'YTick', 1:5,...
-    'YTickLabel', Labels);
-
-set(BackgroundDACorrelationAxes,...
-    'Position', AxeSize)
-
-nVar = height(RValues);
-for iRow = 1:nVar
-    for jColumn = 1:nVar
-        if isnan(RValues(iRow, jColumn))
-            continue
-        end
-
-        pValueSymbol = '';
-        if pValues(iRow, jColumn) < 0.001
-            pValueSymbol = '***';
-        elseif pValues(iRow, jColumn) < 0.01
-            pValueSymbol = '**';
-        elseif pValues(iRow, jColumn) < 0.05
-            pValueSymbol = '*';
-        end
-        
-        TextColour = [0, 0, 0];
-        if RValues(iRow, jColumn) > 0.5
-            TextColour = [1, 1, 1];
-        end
-
-        text(BackgroundDACorrelationAxes, jColumn, iRow,... %index for array is flipped than x-y coordinates
-             strcat(sprintf('%4.2f',...
-                            RValues(iRow, jColumn)),...
-                    pValueSymbol),...
-             'FontSize', 18,...
-             'Color', TextColour,...
-             'HorizontalAlignment', 'center');
-    end
-end
-
-title(BackgroundDACorrelationAxes,...
-      strcat('n = ', num2str(sum(ValidIdx)), ' (', num2str(iPhotoSession), ', 1)'))
+    'YLim', [-1, 2]);
+ylabel(GLMCoeffAxes, '\beta')
+title(GLMCoeffAxes,...
+      sprintf(strcat('n=', num2str(sum(ValidIdx)), '(', num2str(iSession), ', 1)')))
 
 exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end

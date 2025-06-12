@@ -14,7 +14,7 @@ end
 
 try
     load(fullfile(DataFolderPath, '\Selected_Data.mat')); % should be 'DataHolder' as variable name
-    load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
+    % load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
 catch
     disp('Error: Selected DataFolderPath does not contain the required .mat for further steps.')
     return

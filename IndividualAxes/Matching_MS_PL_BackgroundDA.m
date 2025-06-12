@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_PL_BackgroundDA_CorrelationHeatmap(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
+function AnalysisFigure = Matching_MS_PL_BackgroundDA(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
 % for making an example of the task structure
 % figure 'unit' set as 'inch' so that we know exactly the meters to pixels
 % Developed by Antonio Lee @ BCCN Berlin
@@ -29,7 +29,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_PL_BackgroundDA_CorrelationHeatmap';
+AnalysisName = 'Matching_MS_PL_BackgroundDA';
 
 %% PhotometryDataset
 if nargin < 2
@@ -111,7 +111,6 @@ UnchosenValue = [];
 ChosenMemory = [];
 LeftValue = [];
 RightValue = [];
-ChosenLogOdds = [];
 
 for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionData = PhotometryDataHolder{iPhotoSession};
@@ -152,7 +151,7 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
 
     SessionLogOdds = InverseTemperatureMAPs * (Values.LeftValue - Values.RightValue) +...
                      + ChoiceStickinessMAPs * Values.ChoiceMemory + BiasMAPs;
-    
+
     SessionLeftValue = Values.LeftValue;
     SessionRightValue = Values.RightValue;
     SessionChoiceMemory = Values.ChoiceMemory;
@@ -160,25 +159,20 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionUnchosenValue = SessionLeftValue .* (1 - ChoiceLeft) + SessionRightValue .* ChoiceLeft;
     SessionChosenMemory = SessionChoiceMemory .* ChoiceLeft - SessionChoiceMemory .* (1 - ChoiceLeft);
     
-    SessionChosenLogOdds = InverseTemperatureMAPs * (SessionChosenValue - SessionUnchosenValue) +...
-                           + ChoiceStickinessMAPs * SessionChosenMemory + BiasMAPs .* (2 * ChoiceLeft - 1);
-
     LeftValue = [LeftValue, SessionLeftValue];
     RightValue = [RightValue, SessionRightValue];
     LogOdds = [LogOdds, SessionLogOdds];
     ChosenValue = [ChosenValue, SessionChosenValue];
     UnchosenValue = [UnchosenValue, SessionUnchosenValue];
     ChosenMemory = [ChosenMemory, SessionChosenMemory];
-    ChosenLogOdds = [ChosenLogOdds, SessionChosenLogOdds];
 end
 
 TotalValue = ChosenValue + UnchosenValue;
-DiffValue = ChosenValue - UnchosenValue;
 
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [0.2, 0.5, 8.0, 6.8];
+    FigureSize = [0.2, 0.2, 6.1, 5.2];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -205,8 +199,8 @@ ColourPalette = CommonColourPalette();
 
 %% dF/F from DatasetObject
 ChannelName = 'GreenC';
-AlignmentName = 'TimeTrialStart';
-AlignmentWindow = [0, 2];
+AlignmentName = 'TimeReward';
+AlignmentWindow = [-1, 2];
 
 [AlignedDemodData,...
  AlignedBaselineData,...
@@ -214,115 +208,82 @@ AlignmentWindow = [0, 2];
                                         'Alignment', AlignmentName, ...
                                         'AlignmentWindow', AlignmentWindow);
 
-% Prepare AlignData for plotting
+% prepare AlignData for plotting
 NormalisedPreAlignedPhotometryData = (AlignedDemodData ./ AlignedBaselineData - 1) * 100;
 
-% Estimate dF
-EstimatingFunction = str2func('median');
+PhotometryDataValidity = sum(isnan(NormalisedPreAlignedPhotometryData), 2)./width(NormalisedPreAlignedPhotometryData) < 0.9;
+PhotometryOutlier = sum(isoutlier(NormalisedPreAlignedPhotometryData), 2)./width(NormalisedPreAlignedPhotometryData) > 0.5;
+PhotometryDataValidity = PhotometryDataValidity & ~PhotometryOutlier;
+AlignmentDataValidity = ~isnan(DatasetObject.TrialEventTimeData.(AlignmentName)) & PhotometryDataValidity';
 
-try
-    dFEstimation = EstimatingFunction(NormalisedPreAlignedPhotometryData , 2);
-catch
-    disp('Error: Incompatible estimating function for photometry data of nTrial x length of recording')
-    return
-end
-dFEstimation = dFEstimation';
+% sort
+SortingBase = TotalValue;
+[~, SortingIdx] = sort(SortingBase);
+SortedValidIdx = SortingIdx(AlignmentDataValidity(SortingIdx) == 1);
 
-dFEstimationZScore = [];
-FirstTrialIdx = 1;
-for iSession = 1:length(PhotometryDataHolder)
-    SessionData = PhotometryDataHolder{iSession};
-    nTrials = SessionData.nTrials;
-    
-    SessiondFEstimation = dFEstimation(FirstTrialIdx:FirstTrialIdx + nTrials - 1);
-    SessiondFEstimationZScore = zscore(SessiondFEstimation);
-    dFEstimationZScore = [dFEstimationZScore, SessiondFEstimationZScore];
+SortedAlignedData = NormalisedPreAlignedPhotometryData(SortedValidIdx, :);
 
-    FirstTrialIdx = FirstTrialIdx + nTrials;
-end
-
-%% Background DA vs Chosen value
+%% Background DA vs Total value
 if nargin < 5
-    AxeSize = [ 2.1, 2.0, 4.2, 4.0];
+    AxeSize = [1.4, 1.2, 0.6 * diff(AlignmentWindow), 3.5];
 end
 
-BackgroundDACorrelationAxes = axes(AnalysisFigure,...
-                                   'Position', AxeSize,...
-                                   'Units', 'inches',...
-                                   'Color', 'none');
-set(BackgroundDACorrelationAxes,...
+BackgroundDAAxes = axes(AnalysisFigure,...
+                        'Position', AxeSize,...
+                        'Units', 'inches',...
+                        'Color', 'none');
+set(BackgroundDAAxes,...
     'Position', AxeSize,...
-    'Units', 'inches',...
-    'YDir', 'reverse');
-hold(BackgroundDACorrelationAxes, 'on');
+    'Units', 'inches');
+hold(BackgroundDAAxes, 'on');
 
-Data = [dFEstimationZScore', TotalValue', ChosenValue', DiffValue', ChosenLogOdds'];
-ValidIdx = ~isnan(ChosenLogOdds) & ~isoutlier(dFEstimationZScore);
+% convert nan to background colour (black)
+ImageAlpha = ones(size(SortedAlignedData));
+ImageAlpha(isnan(SortedAlignedData)) = 0;
 
-[RValues, pValues] = corr(Data(ValidIdx, :));
-IsUpper = logical(triu(ones(size(RValues)),1));
-RValues(IsUpper) = NaN;
-pValues(IsUpper) = NaN;
+ColourLimit = quantile(abs(SortedAlignedData), [.5], 2);
+ColourLimit = [-max(ColourLimit(:, 1)), max(ColourLimit(:, 1))];
 
-BackgroundDACorrelationImagesc = imagesc(BackgroundDACorrelationAxes, RValues);
+BackgroundDACorrelationImagesc = imagesc(BackgroundDAAxes, SortedAlignedData, ColourLimit);
+BackgroundDACorrelationImagesc.AlphaData = ImageAlpha;
 
-ColourMap = othercolor('Greys9', 128); % ColourMap, function from helper folder
-colormap(BackgroundDACorrelationAxes, ColourMap);
+% colour palette
+ColourMap = othercolor('BlueBlack3', 128); % ColourMap, function from helper folder
+ColourMap = flip(ColourMap, 1);
+colormap(BackgroundDAAxes, ColourMap);
 
-ColourBar = colorbar(BackgroundDACorrelationAxes);
+ColourBar = colorbar();
 set(ColourBar,...
-    'FontSize', 24,...
     'TickDirection', 'out')
-ylabel(ColourBar, 'Correlation coefficient')
+ylabel(ColourBar, 'dF/F (%)')
 
-Labels = {"dF/F (z)", "Reward rate", "V_{chosen}", "\Delta(V)", "Choice value"};
+set(BackgroundDAAxes,...
+    'Position', AxeSize,...
+    'Units', 'inches');
 
-set(BackgroundDACorrelationAxes,...
-    'FontSize', 24,...
-    'XLim', [0.5, 5.5],...
-    'XTick', 1:5,...
-    'XTickLabel', Labels,...
-    'XTickLabelRotation', 90,...
-    'YLim', [0.5, 5.5],...
-    'YTick', 1:5,...
-    'YTickLabel', Labels);
-
-set(BackgroundDACorrelationAxes,...
-    'Position', AxeSize)
-
-nVar = height(RValues);
-for iRow = 1:nVar
-    for jColumn = 1:nVar
-        if isnan(RValues(iRow, jColumn))
-            continue
-        end
-
-        pValueSymbol = '';
-        if pValues(iRow, jColumn) < 0.001
-            pValueSymbol = '***';
-        elseif pValues(iRow, jColumn) < 0.01
-            pValueSymbol = '**';
-        elseif pValues(iRow, jColumn) < 0.05
-            pValueSymbol = '*';
-        end
-        
-        TextColour = [0, 0, 0];
-        if RValues(iRow, jColumn) > 0.5
-            TextColour = [1, 1, 1];
-        end
-
-        text(BackgroundDACorrelationAxes, jColumn, iRow,... %index for array is flipped than x-y coordinates
-             strcat(sprintf('%4.2f',...
-                            RValues(iRow, jColumn)),...
-                    pValueSymbol),...
-             'FontSize', 18,...
-             'Color', TextColour,...
-             'HorizontalAlignment', 'center');
-    end
+if AlignmentWindow(1) < 0 && AlignmentWindow(end) > 0
+    IdxZero = find(AlignedTime > 0, 1, 'first') - 1;
+    XTick = [1, IdxZero, size(SortedAlignedData, 2)];
+    XTickLabel = [AlignmentWindow(1), 0, AlignmentWindow(end)];
+else
+    XTick = [1, size(SortedAlignedData, 2)];
+    XTickLabel = [AlignmentWindow(1), AlignmentWindow(end)];
 end
 
-title(BackgroundDACorrelationAxes,...
-      strcat('n = ', num2str(sum(ValidIdx)), ' (', num2str(iPhotoSession), ', 1)'))
+YTick = [1, size(SortedAlignedData, 1)];
+YTickLabel = [string(sprintf('%1.0f', min(SortingBase))), string(sprintf('%4.2f', max(SortingBase)))];
 
-exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
+set(BackgroundDAAxes,...
+    'TickDir', 'out',...
+    'XLim', [1, size(SortedAlignedData, 2)],...
+    'XTick', XTick,...
+    'XTickLabel', XTickLabel,...
+    'YTick', YTick,...
+    'YTickLabel', YTickLabel,...
+    'FontSize', 24);
+xlabel(BackgroundDAAxes, 'Time (s)')
+ylabel(BackgroundDAAxes, 'Reward rate (a.u.)')
+title(BackgroundDAAxes, 'At reward')
+
+exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '_', AlignmentName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end
