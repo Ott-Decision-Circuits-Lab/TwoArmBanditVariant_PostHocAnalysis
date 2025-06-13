@@ -187,7 +187,7 @@ ColourPalette = CommonColourPalette();
 
 %% TI (z) vs Q
 if nargin < 5
-    AxeSize = [ 1.3, 1.3, 2.3, 3.5];
+    AxeSize = [ 1.3, 1.3, 2.5, 2.8];
 end
 
 TimeInvestmentLogOddsAxes = axes(AnalysisFigure,...
@@ -242,10 +242,11 @@ set(TimeInvestmentLogOddsAxes,...
     'FontSize', 24,...
     'XLim', [-5, 5],...
     'YLim', [-5, 5]);
-xlabel(TimeInvestmentLogOddsAxes, 'Q_{chosen} (a.u.)')
+xlabel(TimeInvestmentLogOddsAxes, 'Choice value (a.u.)')
 ylabel(TimeInvestmentLogOddsAxes, 'Time investment (z)')
-title(TimeInvestmentLogOddsAxes,...
-      sprintf(strcat('n=', num2str(sum(ValidIdx)), '(', num2str(iSession), ', 1)')))
+nText = text(TimeInvestmentLogOddsAxes, -4.5, 3,...
+             sprintf(strcat('nTrial=', num2str(sum(ValidIdx)), '\nnRat=1')),...
+             'FontSize', 18);
 
 exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end

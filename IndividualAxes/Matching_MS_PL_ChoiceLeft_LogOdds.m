@@ -185,7 +185,7 @@ ColourPalette = CommonColourPalette();
 
 %% TI (z) vs Q
 if nargin < 5
-    AxeSize = [ 1.3, 1.3, 2.3, 2.8];
+    AxeSize = [ 1.3, 1.3, 2.5, 2.8];
 end
 
 ChoiceLeftLogOddsAxes = axes(AnalysisFigure,...

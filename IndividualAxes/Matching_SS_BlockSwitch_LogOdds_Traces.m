@@ -134,7 +134,7 @@ RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGrac
 %% Initiatize figure
 % create figure
 if nargin < 3
-    FigureSize = [2.0, 5.0, 5.6, 2.1];
+    FigureSize = [0.5, 0.5, 5.6, 2.1];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...

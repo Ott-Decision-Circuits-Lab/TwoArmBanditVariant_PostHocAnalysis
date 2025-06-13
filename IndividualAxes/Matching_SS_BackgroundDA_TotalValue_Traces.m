@@ -134,7 +134,7 @@ RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGrac
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [0.2, 0.5, 5.8, 3.0];
+    FigureSize = [0.2, 0.5, 6.6, 3.0];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -250,7 +250,7 @@ PredictedChoice(isnan(ChoiceLeft)) = nan;
 
 %% Background DA vs Chosen value
 if nargin < 5
-    AxeSize = [1.3, 0.8, 3.2, 2.0];
+    AxeSize = [1.3, 0.8, 4.0, 2.0];
 end
 
 TracesAxes = axes(AnalysisFigure,...

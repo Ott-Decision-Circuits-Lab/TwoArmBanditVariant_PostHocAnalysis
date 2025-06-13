@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_PL_BackgroundDA_TotalValue(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
+function AnalysisFigure = Matching_MS_PL_BackgroundDA_TotalValue_ResRes_ChosenValue(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
 % for making an example of the task structure
 % figure 'unit' set as 'inch' so that we know exactly the meters to pixels
 % Developed by Antonio Lee @ BCCN Berlin
@@ -14,7 +14,7 @@ end
 
 try
     load(fullfile(DataFolderPath, '\Selected_Data.mat')); % should be 'DataHolder' as variable name
-    load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
+    % load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
 catch
     disp('Error: Selected DataFolderPath does not contain the required .mat for further steps.')
     return
@@ -29,7 +29,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_PL_BackgroundDA_TotalValue';
+AnalysisName = 'Matching_MS_PL_BackgroundDA_TotalValue_ResRes_ChosenValue';
 
 %% PhotometryDataset
 if nargin < 2
@@ -111,6 +111,7 @@ UnchosenValue = [];
 ChosenMemory = [];
 LeftValue = [];
 RightValue = [];
+ChosenLogOdds = [];
 
 for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionData = PhotometryDataHolder{iPhotoSession};
@@ -151,7 +152,7 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
 
     SessionLogOdds = InverseTemperatureMAPs * (Values.LeftValue - Values.RightValue) +...
                      + ChoiceStickinessMAPs * Values.ChoiceMemory + BiasMAPs;
-
+    
     SessionLeftValue = Values.LeftValue;
     SessionRightValue = Values.RightValue;
     SessionChoiceMemory = Values.ChoiceMemory;
@@ -159,20 +160,25 @@ for iPhotoSession = 1:length(PhotometryDataHolder)
     SessionUnchosenValue = SessionLeftValue .* (1 - ChoiceLeft) + SessionRightValue .* ChoiceLeft;
     SessionChosenMemory = SessionChoiceMemory .* ChoiceLeft - SessionChoiceMemory .* (1 - ChoiceLeft);
     
+    SessionChosenLogOdds = InverseTemperatureMAPs * (SessionChosenValue - SessionUnchosenValue) +...
+                           + ChoiceStickinessMAPs * SessionChosenMemory + BiasMAPs .* (2 * ChoiceLeft - 1);
+
     LeftValue = [LeftValue, SessionLeftValue];
     RightValue = [RightValue, SessionRightValue];
     LogOdds = [LogOdds, SessionLogOdds];
     ChosenValue = [ChosenValue, SessionChosenValue];
     UnchosenValue = [UnchosenValue, SessionUnchosenValue];
     ChosenMemory = [ChosenMemory, SessionChosenMemory];
+    ChosenLogOdds = [ChosenLogOdds, SessionChosenLogOdds];
 end
 
 TotalValue = ChosenValue + UnchosenValue;
+DiffValue = ChosenValue - UnchosenValue;
 
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [   2,    5,    3.6,  2.8];
+    FigureSize = [0.2, 0.5, 8.0, 6.8];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -222,35 +228,62 @@ catch
 end
 dFEstimation = dFEstimation';
 
-%% Background DA vs Total value
-if nargin < 5
-    AxeSize = [ 0.7, 0.6,    2,    2];
+dFEstimationZScore = [];
+FirstTrialIdx = 1;
+for iSession = 1:length(PhotometryDataHolder)
+    SessionData = PhotometryDataHolder{iSession};
+    nTrials = SessionData.nTrials;
+    
+    SessiondFEstimation = dFEstimation(FirstTrialIdx:FirstTrialIdx + nTrials - 1);
+    SessiondFEstimationZScore = zscore(SessiondFEstimation);
+    dFEstimationZScore = [dFEstimationZScore, SessiondFEstimationZScore];
+
+    FirstTrialIdx = FirstTrialIdx + nTrials;
 end
 
-BackgroundDATotalValueAxes = axes(AnalysisFigure,...
-                                  'Position', AxeSize,...
-                                  'Units', 'inches',...
-                                  'Color', 'none');
-set(BackgroundDATotalValueAxes,...
+%% Background DA vs Chosen value
+if nargin < 5
+    AxeSize = [ 1.2, 1.1, 2.8, 2.8];
+end
+
+ResResAxes = axes(AnalysisFigure,...
+                  'Position', AxeSize,...
+                  'Units', 'inches',...
+                  'Color', 'none');
+set(ResResAxes,...
     'Position', AxeSize,...
-    'Units', 'inches');
-hold(BackgroundDATotalValueAxes, 'on');
+    'Units', 'inches',...
+    'YDir', 'normal');
+hold(ResResAxes, 'on');
 
-ValidIdx = ~isnan(TotalValue) & ~isnan(dFEstimation);
+Data = [dFEstimationZScore', TotalValue', ChosenValue'];
+ValidIdx = ~isnan(ChosenLogOdds) & ~isoutlier(dFEstimationZScore);
 
-XData = TotalValue(ValidIdx);
-YData = dFEstimation(ValidIdx);
+GLM1 = fitglm(ChosenValue(ValidIdx)', dFEstimationZScore(ValidIdx)');
+GLM2 = fitglm(ChosenValue(ValidIdx)', TotalValue(ValidIdx)');
 
 SampleSize = 1000;
 SampleThreshold = SampleSize / sum(ValidIdx);
-Sampling = rand(size(XData)) < SampleThreshold;
+Sampling = rand(size(GLM1.Residuals.Raw)) < SampleThreshold;
 
-BackgroundDATotalValueScatter = scatter(BackgroundDATotalValueAxes, XData(Sampling), YData(Sampling),...
-                                        'Marker', '.',...
-                                        'CData', [1, 1, 1] * 0.5,...
-                                        'SizeData', 12);
+ResResScatter = scatter(ResResAxes,...
+                        GLM1.Residuals.Raw(Sampling),...
+                        GLM2.Residuals.Raw(Sampling),...
+                        'Marker', '.',...
+                        'SizeData', 12,...
+                        'CData', [1, 1, 1] * 0.5);
 
-[RValue, pValue] = corrcoef(TotalValue(ValidIdx), dFEstimation(ValidIdx));
+X = [ones(size(GLM1.Residuals.Raw)), GLM1.Residuals.Raw];
+b = X \ GLM2.Residuals.Raw;
+
+XData = [-2, 2];
+YData = XData * b(2) + b(1);
+
+ResResRegressionLine = line(ResResAxes, XData, YData,...
+                            'Color', 'k',...
+                            'LineWidth', 1);
+
+[RValue, pValue] = corrcoef(GLM1.Residuals.Raw, GLM2.Residuals.Raw);
 
 pValueSymbol = '';
 if pValue(1, 2) < 0.001
@@ -261,39 +294,24 @@ elseif pValue(1, 2) < 0.05
     pValueSymbol = '*';
 end
 
-BackgroundDATotalValueStatText = text(BackgroundDATotalValueAxes, 0.1, 0.2,...
-                                      strcat(sprintf('R = %4.2f',...
-                                                     RValue(1, 2)),...
-                                             pValueSymbol),...
-                                      'Units','inches',...
-                                      'FontSize', 24,...
-                                      'Color', 'k');
+ResResStatText = text(ResResAxes, 0.2, 0.2,...
+                      strcat(sprintf('R = %4.2f',...
+                                     RValue(1, 2)),...
+                             pValueSymbol),...
+                      'Units','inches',...
+                      'FontSize', 18,...
+                      'Color', 'k');
 
-X = [ones(1, sum(ValidIdx)); TotalValue(ValidIdx)]';
-b = X \ dFEstimation(ValidIdx)';
+set(ResResAxes,...
+    'FontSize', 18,...
+    'XLim', [-2, 2],...
+    'YLim', [-0.2, 0.4]);
+xlabel(ResResAxes, 'residual_{dF/F(z)~V_{chosen}}')
+ylabel(ResResAxes, 'residual_{Reward rate ~ V_{chosen}}')
 
-XData = [0, 0.6];
-YData = XData * b(2) + b(1);
-
-BackgroundDATotalValueRegressionLine = line(BackgroundDATotalValueAxes, XData, YData,...
-                                            'Color', 'k',...
-                                            'LineWidth', 1);
-
-set(BackgroundDATotalValueAxes,...
-    'TickDir', 'out',...
-    'XLim', [0, 0.6],...
-    'XTick', [0, 0.5],...
-    'YLim', [-20, 20],...
-    'YTick', [-20, 0, 20],...
-    'FontSize', 24);
-xlabel(BackgroundDATotalValueAxes, 'Reward rate (a.u.)')
-ylabel(BackgroundDATotalValueAxes, 'dF/F (%)')
-
-nText = text(BackgroundDATotalValueAxes, 0.1, 2.5,...
-             sprintf('nTrial = %5.0f\nnRat = 1',...
-                     sum(ValidIdx)),...
-             'FontSize', 18,...
-             'Unit', 'inches');
+nText = text(ResResAxes, -1.8, 0.3,...
+             sprintf(strcat('n = ', num2str(sum(ValidIdx)), '\nnRat=1')),...
+             'FontSize', 18);
 
 exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end
