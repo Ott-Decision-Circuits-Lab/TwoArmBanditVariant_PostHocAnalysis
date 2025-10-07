@@ -337,7 +337,6 @@ set(VevaiometricMTLogZScoreAxes,...
     'YAxisLocation', 'right')
 xlabel(VevaiometricMTLogZScoreAxes, 'log(odds)');
 ylabel(VevaiometricMTLogZScoreAxes, 'log(Move Time) (z-score)');
-%}
 
 % Vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
 LRVevaiometricMTAxes = axes(AnalysisFigure, 'Position', [0.83    0.48    0.15    0.19]);
@@ -411,8 +410,8 @@ for iSession = 1:length(DataHolder)
     SessionDateLabel = [SessionDateLabel, string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
     
     nTrials = SessionData.nTrials;
-    if nTrials < 200
-        disp(['Session ', num2str(iSession), ' has nTrial < 200. Impossible for analysis.'])
+    if nTrials < 300
+        disp(['Session ', num2str(iSession), ' has nTrial < 300. Impossible for analysis.'])
         continue
     end
     idxTrial = 1:nTrials;
@@ -743,9 +742,11 @@ for iSession = 1:length(DataHolder)
 
     % Block 2 transition (2nd -> 3rd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
-    Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-    Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
+        Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    end
 
     % Block 3 transition (3rd -> 4th)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
@@ -1595,7 +1596,7 @@ set(RightExploringMTBoxchart,...
     'MarkerStyle', 'none',...
     'LineWidth', 0.2);
 
-% TI-ZScore distribution per left-right and explore/exploit
+% MT-ZScore distribution per left-right and explore/exploit
 % use log normal
 % NOT USE AS NOT NORMAL DISTRIBUTION
 AllLeftExploitingMTLogZScore = AllLeftMTLogZScore(AllLeftExploitation == 1);

@@ -21,7 +21,7 @@ InitialParameters = [LearningRate, InverseTemperature, ForgettingRate, ChoiceSti
 CalculateMLE = @(Parameters) ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded);
 
 try
-    [EstimatedParameters, MinNegLogDataLikelihood] =...
+    [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
         fmincon(CalculateMLE, InitialParameters, [], [], [], [], LowerBound, UpperBound);
 catch
     disp('Error: fail to run model');
@@ -35,5 +35,12 @@ Model.InitialParameters = InitialParameters;
 
 Model.EstimatedParameters = EstimatedParameters;
 Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
+Model.Grad = Grad;
+Model.Hessian = Hessian;
+try
+    Model.StandardErrorEstimateedParameters = sqrt(diag(inv(Hessian)))';
+catch
+    Model.StandardErrorEstimateedParameters = nan(size(EstimatedParameters));
+end
 
 end % end function

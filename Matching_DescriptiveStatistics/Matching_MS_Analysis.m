@@ -340,8 +340,8 @@ for iSession = 1:length(DataHolder)
     SessionDateLabel = [SessionDateLabel, string(datestr(datetime(SessionData.Info.SessionDate), 'YYYYmmDD(ddd)'))];
     
     nTrials = SessionData.nTrials;
-    if nTrials < 200
-        disp(['Session ', num2str(iSession), ' has nTrial < 200. Impossible for analysis.'])
+    if nTrials < 250
+        disp(['Session ', num2str(iSession), ' has nTrial < 250. Impossible for analysis.'])
         continue
     end
     idxTrial = 1:nTrials;
@@ -459,18 +459,22 @@ for iSession = 1:length(DataHolder)
     
     % Block 2 Transition (2nd -> 3rd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
-    PHighChoice(iSession, 2)  = RewardProb(1, BlockTransitionIdx) > RewardProb(2, BlockTransitionIdx);
-    ChosenPHigh = ChoiceLeft(BlockTransitionIdx - 20:BlockTransitionIdx + 50) == PHighChoice(iSession, 2);
-    YData = smooth(movmean(ChosenPHigh, [9 0])); % have to include some idx further back for movmean to work
-    Block2TransitionLine{iSession} = line(Block2TransitionAxes,...
-                                          'xdata', -10:50,...
-                                          'ydata', YData(11:end) * 100,...
-                                          'LineStyle', '-',...
-                                          'Marker', 'none',...
-                                          'Color', ColourPalette.Session);
-    
-    Block2TransitionYData(iSession, :) = ChosenPHigh(11:end);
-    
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
+        PHighChoice(iSession, 2)  = RewardProb(1, BlockTransitionIdx) > RewardProb(2, BlockTransitionIdx);
+        ChosenPHigh = ChoiceLeft(BlockTransitionIdx - 20:BlockTransitionIdx + 50) == PHighChoice(iSession, 2);
+        YData = smooth(movmean(ChosenPHigh, [9 0])); % have to include some idx further back for movmean to work
+        Block2TransitionLine{iSession} = line(Block2TransitionAxes,...
+                                              'xdata', -10:50,...
+                                              'ydata', YData(11:end) * 100,...
+                                              'LineStyle', '-',...
+                                              'Marker', 'none',...
+                                              'Color', ColourPalette.Session);
+        
+        Block2TransitionYData(iSession, :) = ChosenPHigh(11:end);
+    else
+        Block2TransitionYData(iSession, :) = nan(1, 61);
+    end
+
     % Block 3 Transition (3rd -> 4th)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials

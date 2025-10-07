@@ -230,7 +230,7 @@ if ~isempty(ChoiceLeft) && ~all(isnan(ChoiceLeft))
 end
 
 %% Lau Glimcher-model & Predicted Choice
-try 
+try
     % preparing the data for design matrix
     Choices = ChoiceLeft';
     Choices(Choices==0) = -1; %1 = left; -1 = right
