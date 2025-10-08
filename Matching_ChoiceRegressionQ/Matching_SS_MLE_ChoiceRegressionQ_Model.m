@@ -38,9 +38,9 @@ Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
 Model.Grad = Grad;
 Model.Hessian = Hessian;
 try
-    Model.StandardErrorEstimateedParameters = sqrt(diag(inv(Hessian)))';
+    Model.ParameterStandardError = sqrt(diag(inv(Hessian)))';
 catch
-    Model.StandardErrorEstimateedParameters = nan(size(EstimatedParameters));
+    Model.ParameterStandardError = nan(size(EstimatedParameters));
 end
 
 end % end function

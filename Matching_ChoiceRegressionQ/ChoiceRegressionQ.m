@@ -5,10 +5,10 @@ function [NegLogDataLikelihood, Values] = ChoiceRegressionQ(Parameters, nTrials,
 
 Bias = Parameters(1); % beta_0
 QCoeff = Parameters(2); % gamma
-Minus1ChoiceCoeff = Parameters(3); % beta_c
-Minus1RewardCoeff = Parameters(4); % beta_r
-Minus2ChoiceCoeff = Parameters(5); % beta_c
-Minus2RewardCoeff = Parameters(6); % beta_r
+Minus1ChoiceCoeff = Parameters(3); % beta_c1
+Minus1RewardCoeff = Parameters(4); % beta_r1
+Minus2ChoiceCoeff = Parameters(5); % beta_c2
+Minus2RewardCoeff = Parameters(6); % beta_r2
 
 % Q-value initialisation
 ChoiceLeftLogOdds = 0;
