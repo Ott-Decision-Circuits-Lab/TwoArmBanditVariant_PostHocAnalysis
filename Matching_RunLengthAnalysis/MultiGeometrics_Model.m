@@ -1,22 +1,14 @@
-function Model = Matching_SS_MLE_ChoiceForaging_Model(SessionData)
-nTrials = SessionData.nTrials;
-ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
-Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
+function Model = MultiGeometrics_Model(nGeometrics, Samples)
 
 % Parametric estimation
-LowerBound = [0.00, 2, 0.00, 0.0];
-UpperBound = [1.00, 10, 1, 1];
+LowerBound = zeros(1, 2 * nGeometrics - 1);
+UpperBound = ones(1, 2 * nGeometrics - 1);
 
 % Free parameters
 % 20250708 tested with simulation that works well as initial parameters
-LearningRate = 0.30; % alpha
-InverseTemperature = 3; % beta
-Threshold = 0.6; % theta
-ForgettingRate = 0.15; % gamma
+InitialParameters = 0.25 * ones(1, 2 * nGeometrics - 1);
 
-InitialParameters = [LearningRate, InverseTemperature, Threshold, ForgettingRate];
-
-CalculateMLE = @(Parameters) ChoiceForaging(Parameters, nTrials, ChoiceLeft, Rewarded);
+CalculateMLE = @(Parameters) MultiGeometrics(Parameters, Samples);
 
 try
     [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
