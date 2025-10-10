@@ -129,11 +129,23 @@ ylabel(CountAxes, 'Probability')
 %% exponential fits
 nGeometrics = 4;
 
+Models = cell(1, nGeometrics);
+try
+    load(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')));
+catch
+    disp('No Models is found.')
+end
+
 NegLogLikelihood = zeros(1, nGeometrics);
 for iGeometric = 1:nGeometrics
-    Model = MultiGeometrics_Model(iGeometric, Samples);
-    Models{iGeometric} = Model;
-    
+    if isempty(Models{iGeometric})
+        Model = MultiGeometrics_Model(iGeometric, Samples);
+        Models{iGeometric} = Model;
+        save(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')), 'Models');
+    else
+        Model = Models{iGeometric};
+    end
+
     EstimatedParameters = Model.EstimatedParameters;
     NegLogLikelihood(iGeometric) = Model.MinNegLogDataLikelihood;
     
@@ -186,7 +198,7 @@ xlabel(LikelihoodAxes, 'Number of geometrics')
 ylabel(LikelihoodAxes, 'log(likelihood)')
 
 %% 2 geometrics
-Model2Axes = axes(AnalysisFigure, 'Position', [0.40, 0.55, 0.27, 0.31]);
+Model2Axes = axes(AnalysisFigure, 'Position', [0.40, 0.10, 0.27, 0.31]);
 hold(Model2Axes, 'on');
 
 LegendString = {'', ''};
@@ -227,4 +239,12 @@ xlabel(Model2Axes, 'Run length')
 title(Model2Axes, 'Sum of 2 geometrics')
 
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
+
+%% save
+DataPath = strcat(DataFolderPath, '\', FigureTitle, '.png');
+exportgraphics(AnalysisFigure, DataPath);
+
+DataPath = strcat(DataFolderPath, '\', FigureTitle, '.fig');
+savefig(AnalysisFigure, DataPath);
+
 end % function
