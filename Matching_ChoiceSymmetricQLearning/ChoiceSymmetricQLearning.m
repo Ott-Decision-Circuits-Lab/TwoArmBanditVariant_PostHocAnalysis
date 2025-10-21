@@ -17,16 +17,16 @@ ChoiceMemory = 0;
 NegLogDataLikelihood = 0;
 
 % Likelihood iteration
-for iTrial = 1:nTrials-1 % <- -1 as raw ChoiceLeft has one pre-allocated nan
-    LogOdds = InverseTemperature * (LeftValue(iTrial) - RightValue(iTrial)) +...
-              + ChoiceStickiness * ChoiceMemory(iTrial) + Bias;
+for iTrial = 1:nTrials % <- -1 as raw ChoiceLeft has one pre-allocated nan
+    LogOdds(iTrial) = InverseTemperature * (LeftValue(iTrial) - RightValue(iTrial)) +...
+                      + ChoiceStickiness * ChoiceMemory(iTrial) + Bias;
     
     LeftValue(iTrial + 1) = (1 - ForgettingRate) * LeftValue(iTrial);
     RightValue(iTrial + 1) = (1 - ForgettingRate) * RightValue(iTrial);
     ChoiceMemory(iTrial + 1) = (1 - ChoiceForgettingRate) * ChoiceMemory(iTrial);
 
     if ChoiceLeft(iTrial) == 1
-        ChoiceLogOdds = LogOdds;
+        ChoiceLogOdds = LogOdds(iTrial);
         NegLogDataLikelihood = NegLogDataLikelihood - log(1 ./ (1 + exp(-ChoiceLogOdds)));
         
         if Rewarded(iTrial) == 1
@@ -38,7 +38,7 @@ for iTrial = 1:nTrials-1 % <- -1 as raw ChoiceLeft has one pre-allocated nan
         ChoiceMemory(iTrial + 1) =  ChoiceMemory(iTrial + 1) + ChoiceForgettingRate;
         
     elseif ChoiceLeft(iTrial) == 0
-        ChoiceLogOdds = -LogOdds;
+        ChoiceLogOdds = -LogOdds(iTrial);
         NegLogDataLikelihood = NegLogDataLikelihood - log(1 ./ (1 + exp(-ChoiceLogOdds)));
         
         if Rewarded(iTrial) == 1
@@ -59,8 +59,9 @@ for iTrial = 1:nTrials-1 % <- -1 as raw ChoiceLeft has one pre-allocated nan
     end
 end % end for-loop
 
-Values.LeftValue = LeftValue;
-Values.RightValue = RightValue;
-Values.ChoiceMemory = ChoiceMemory;
+Values.LeftValue = LeftValue(1:nTrials);
+Values.RightValue = RightValue(1:nTrials);
+Values.ChoiceMemory = ChoiceMemory(1:nTrials);
+Values.ChoiceLeftLogOdds = LogOdds(1:nTrials);
 
 end % end function
