@@ -31,6 +31,7 @@ for iTrial = 1:nTrials
         ChoiceLeftLogOdds(iTrial) = nan;
 
         if ~isnan(ChoiceLeft(iTrial)) % first trial with choice
+            Exploited(iTrial) = 0;
             ChoiceLogOdds(iTrial) = 0;
             ChoiceLeftLogOdds(iTrial) = 0;
             NegLogDataLikelihood = NegLogDataLikelihood - log(1 ./ (1 + exp(-ChoiceLogOdds(iTrial))));
@@ -53,14 +54,14 @@ for iTrial = 1:nTrials
         
     elseif abs(ChoiceLeft(iTrial) - LastValidChoice) == 1
         Exploited(iTrial) = 0;
-        ChoiceLogOdds(iTrial) = -ExploitingLogOdds;
+        ChoiceLogOdds(iTrial) = ExploitingLogOdds;
         if LastValidChoice == 1
             ChoiceLeftLogOdds(iTrial) = ExploitingLogOdds;
         elseif LastValidChoice == 0
             ChoiceLeftLogOdds(iTrial) = -ExploitingLogOdds;
         end
         
-        NegLogDataLikelihood = NegLogDataLikelihood - log(1 ./ (1 + exp(-ChoiceLogOdds(iTrial))));
+        NegLogDataLikelihood = NegLogDataLikelihood - log(1 ./ (1 + exp(ChoiceLogOdds(iTrial))));
         LastValidChoice = ChoiceLeft(iTrial);
 
     else % subsequent trials without choice

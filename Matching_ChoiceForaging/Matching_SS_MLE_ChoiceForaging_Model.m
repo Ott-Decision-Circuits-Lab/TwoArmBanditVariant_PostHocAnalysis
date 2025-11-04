@@ -8,37 +8,45 @@ LowerBound = [0.00, 2, 0.00, 0.0];
 UpperBound = [1.00, 10, 1, 1];
 
 % Free parameters
-% 20250708 tested with simulation that works well as initial parameters
-LearningRate = 0.30; % alpha
-InverseTemperature = 3; % beta
-Threshold = 0.6; % theta
-ForgettingRate = 0.15; % gamma
-
-InitialParameters = [LearningRate, InverseTemperature, Threshold, ForgettingRate];
-
 CalculateMLE = @(Parameters) ChoiceForaging(Parameters, nTrials, ChoiceLeft, Rewarded);
 
-try
-    [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
-        fmincon(CalculateMLE, InitialParameters, [], [], [], [], LowerBound, UpperBound);
-catch
-    disp('Error: fail to run model');
-    EstimatedParameters = [];
-    MinNegLogDataLikelihood = nan;
-end
-
+Model = struct();
 Model.LowerBound = LowerBound;
 Model.UpperBound = UpperBound;
-Model.InitialParameters = InitialParameters;
+Model.MinNegLogDataLikelihood = 0;
 
-Model.EstimatedParameters = EstimatedParameters;
-Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
-Model.Grad = Grad;
-Model.Hessian = Hessian;
-try
-    Model.ParameterStandardError = sqrt(diag(inv(Hessian)))';
-catch
-    Model.ParameterStandardError = nan(size(EstimatedParameters));
+for iInitialCond = 1:10
+    % 20250708 tested with simulation that works well as initial parameters
+    LearningRate = rand() / 2; % alpha
+    InverseTemperature = rand() * 5; % beta
+    Threshold = rand() * 2; % theta
+    ForgettingRate = rand() / 2; % gamma
+    
+    InitialParameters = [LearningRate, InverseTemperature, Threshold, ForgettingRate];
+
+    try
+        [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
+            fmincon(CalculateMLE, InitialParameters, [], [], [], [], LowerBound, UpperBound);
+    catch
+        disp('Error: fail to run model');
+        EstimatedParameters = [];
+        MinNegLogDataLikelihood = nan;
+    end
+    
+    if Model.MinNegLogDataLikelihood < MinNegLogDataLikelihood
+        Model.LowerBound = LowerBound;
+        Model.UpperBound = UpperBound;
+        Model.InitialParameters = InitialParameters;
+        
+        Model.EstimatedParameters = EstimatedParameters;
+        Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
+        Model.Grad = Grad;
+        Model.Hessian = Hessian;
+        try
+            Model.ParameterStandardError = sqrt(diag(inv(Hessian)))';
+        catch
+            Model.ParameterStandardError = nan(size(EstimatedParameters));
+        end
+    end
 end
-
 end % end function

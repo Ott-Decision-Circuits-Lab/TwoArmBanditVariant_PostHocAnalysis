@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_SS_MLE_ChoiceForaging_Visualisation(DataFile, Model)
+function AnalysisFigure = Matching_SS_B_ChoiceSymmetricQLearning_Visualisation(DataFile, Model)
 % SS = SingleSession
 % MLE = Maximum Log Likelihood
 % Matching Analysis Function
@@ -45,7 +45,7 @@ elseif ~strcmpi(SessionData.SettingsFile.GUIMeta.RiskType.String{SessionData.Set
     return
 end
 
-AnalysisName = 'Matching_SS_MLE_ChoiceForaging';
+AnalysisName = 'Matching_SS_B_ChoiceSymmetricQLearning';
 
 %% Load related data to local variabels
 RatID = str2double(SessionData.Info.Subject);
@@ -215,33 +215,44 @@ end
 % model
 if nargin < 2
     try
-        Model = Matching_SS_MLE_ChoiceForaging_Model(SessionData);
+        Model = Matching_SS_B_ChoiceSymmetricQLearning_Model(SessionData);
     catch
         disp('Error: problem in modelling. N further analysis is possible')
         return
     end
 end
 
-EstimatedParameters = Model.EstimatedParameters;
-MinNegLogDataLikelihood = Model.MinNegLogDataLikelihood;
+Chain = vertcat(Model.Chains{:});
 
-if isempty(EstimatedParameters) || isnan(MinNegLogDataLikelihood) 
-    disp('Error: fail to run model');
-    return
-end
+[ProbDensity, Values] = ksdensity(Chain(:, 1));
+LearningRate = Values(ProbDensity == max(ProbDensity));
 
-% extract parameters
-LearningRate = EstimatedParameters(1); % alpha
-InverseTemperature = EstimatedParameters(2); % beta
-Threshold = EstimatedParameters(3); % theta
-ForgettingRate = EstimatedParameters(4); % gamma
+[ProbDensity, Values] = ksdensity(Chain(:, 2));
+InverseTemperature = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 3));
+ForgettingRate = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 4));
+ChoiceStickiness = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 5));
+ChoiceForgettingRate = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 6));
+Bias = Values(ProbDensity == max(ProbDensity));
+
+EstimatedParameters = [LearningRate, InverseTemperature, ForgettingRate,...
+                       ChoiceStickiness, ChoiceForgettingRate, Bias];
 
 % make prediction from Model (i.e. estimated parameters)
-[~, Values] = ChoiceForaging(EstimatedParameters, nTrials, ChoiceLeft, Rewarded);
-ExploitingValue = Values.ExploitingValue;
-Exploited = Values.Exploited;
-ChoiceExploitLogOdds = Values.ChoiceExploitLogOdds;
-LogOdds = Values.ChoiceLeftLogOdds;
+[~, Values] = ChoiceSymmetricQLearning(EstimatedParameters, nTrials, ChoiceLeft, Rewarded);
+LeftValue = Values.LeftValue;
+RightValue = Values.RightValue;
+ChoiceMemory = Values.ChoiceMemory;
+
+LogOdds = InverseTemperature * (LeftValue - RightValue) +...
+          + ChoiceStickiness * ChoiceMemory + Bias;
 
 PredictedLeftChoiceProb = 1 ./ (1 + exp(-LogOdds));
 ModelResiduals = ChoiceLeft - PredictedLeftChoiceProb;
@@ -288,65 +299,72 @@ disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 PsychometricAxes = axes(AnalysisFigure, 'Position', [0.23    0.56    0.15    0.11]);
 hold(PsychometricAxes, 'on')
 
-% Choice Psychometric
-ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
-ValidLogOdds = LogOdds(ValidTrial);
-ValidExploitLogOdds = ChoiceExploitLogOdds(ValidTrial);
-ValidChoice = ChoiceLeft(ValidTrial);
-ValidExploited = Exploited(ValidTrial);
-
-dvbin = linspace(min(ValidLogOdds), max(ValidLogOdds), 10);
-[xdata, ydata, error] = BinData(ValidLogOdds, ValidChoice, dvbin);
-vv = ~isnan(xdata) & ~isnan(ydata) & ~isnan(error);
-
-PsychometricErrorBar = errorbar(PsychometricAxes, xdata(vv), ydata(vv)*100, error(vv)*100,...
-                                'LineStyle', 'none',...
-                                'LineWidth', 1.5,...
-                                'Color', 'k',...
-                                'Marker', 'o',...
-                                'MarkerEdgeColor', 'k');
-
-PsychometricGLM = fitglm(ValidExploitLogOdds, ValidChoice(:), 'Distribution', 'binomial');
-PsychometricGLMPlot = plot(PsychometricAxes, xdata, predict(PsychometricGLM, xdata)*100, '-', 'Color', [.5,.5,.5], 'LineWidth', 0.5);
-
 set(PsychometricAxes,...
     'FontSize', 10,...
-    'XLim', [min(dvbin), max(dvbin)],...
+    'XLim', [-5 5],...
     'YLim', [0, 100],...
     'YAxisLocation', 'right')
 title(PsychometricAxes, 'Psychometric')
 xlabel('log(odds)')
 ylabel('Left Choices (%)')
 
+% Choice Psychometric
+ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
+ValidLogOdds = LogOdds(ValidTrial);
+ValidChoice = ChoiceLeft(ValidTrial);
+dvbin = linspace(-max(abs(ValidLogOdds)), max(abs(ValidLogOdds)), 10);
+[xdata, ydata, error] = BinData(ValidLogOdds, ValidChoice, dvbin);
+vv = ~isnan(xdata) & ~isnan(ydata) & ~isnan(error);
+
+ChoicePsychometricErrorBar = errorbar(PsychometricAxes, xdata(vv), ydata(vv)*100, error(vv)*100,...
+                                      'LineStyle', 'none',...
+                                      'LineWidth', 1.5,...
+                                      'Color', 'k',...
+                                      'Marker', 'o',...
+                                      'MarkerEdgeColor', 'k');
+
+PsychometricGLM = fitglm(ValidLogOdds, ValidChoice(:), 'Distribution', 'binomial');
+PsychometricGLMPlot = plot(PsychometricAxes, xdata, predict(PsychometricGLM, xdata)*100, '-', 'Color', [.5,.5,.5], 'LineWidth', 0.5);
+
 %% Coefficient of Symmetric Q with forgetting and stickiness
 ModelParameterAxes = axes(AnalysisFigure, 'Position', [0.04    0.56    0.15    0.11]);
 hold(ModelParameterAxes, 'on');
 
 set(ModelParameterAxes, 'FontSize', 10)
-title(ModelParameterAxes, 'Foraging-RL Fitted Parameters')
+title(ModelParameterAxes, 'Q-RL Fitted Parameters')
 
-LearningRateText = text(ModelParameterAxes, 0, 4,...
+LearningRateText = text(ModelParameterAxes, 0, 6,...
                         strcat('\alpha = ', sprintf('%5.3f', LearningRate)),...
                         'FontSize', 12,...
                         'Interpreter', 'tex');
 
-InverseTemperatureText = text(ModelParameterAxes, 0, 3,...
+InverseTemperatureText = text(ModelParameterAxes, 0, 5,...
                               strcat('\beta = ', sprintf('%5.2f', InverseTemperature)),...
                               'FontSize', 12,...
                               'Interpreter', 'tex');
 
-ThresholdText = text(ModelParameterAxes, 0, 2,...
-                     strcat('\theta = ', sprintf('%5.3f', Threshold)),...
-                     'FontSize', 12,...
-                     'Interpreter', 'tex');
-
-ForgettingRateText = text(ModelParameterAxes, 0, 1,...
+ForgettingRateText = text(ModelParameterAxes, 0, 4,...
                           strcat('\gamma = ', sprintf('%5.3f', ForgettingRate)),...
                           'FontSize', 12,...
                           'Interpreter', 'tex');
 
+ChoiceStickinessText = text(ModelParameterAxes, 0, 3,...
+                            strcat('\phi = ', sprintf('%5.3f', ChoiceStickiness)),...
+                            'FontSize', 12,...
+                            'Interpreter', 'tex');
+
+ChoiceForgettingRateText = text(ModelParameterAxes, 0, 2,...
+                                strcat('\gamma_c = ', sprintf('%5.3f', ChoiceForgettingRate)),...
+                                'FontSize', 12,...
+                                'Interpreter', 'tex');
+
+BiasText = text(ModelParameterAxes, 0, 1,...
+                strcat('bias = ', sprintf('%5.3f', Bias)),...
+                'FontSize', 12,...
+                'Interpreter', 'tex');
+
 set(ModelParameterAxes,...
-    'YLim', [0, 5],...
+    'YLim', [0, 6],...
     'XTick', [],...
     'YTick', [],...
     'XColor', 'w',...
@@ -444,8 +462,8 @@ if ~all(isnan(FeedbackWaitingTime))
     hold(TrialTIAxes, 'on');
     
     NotBaited = any(~Baited .* ChoiceLeftRight, 1) & (IncorrectChoice ~= 1);
-    Explore = abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5; % i.e. deviated from model, not the same as deviate from previous choice
-    Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5; % i.e. align with model, not the same as repeating previous choice
+    Explore = abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5;
+    Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5;
     
     ExploringTITrial = NotBaited & Explore;
     ExploitingTITrial = NotBaited & Exploit;
@@ -508,7 +526,7 @@ if ~all(isnan(FeedbackWaitingTime))
     
     set(VevaiometricAxes,...
         'FontSize', 10,...
-        'XLim', [min(LogOdds), max(LogOdds)],...
+        'XLim', [-5 5],...
         'YLim', [0 SessionData.SettingsFile.GUI.FeedbackDelayMax * 1.5])
     title(VevaiometricAxes, 'Vevaiometric');
     xlabel(VevaiometricAxes, 'log(odds)');
@@ -564,7 +582,7 @@ if ~all(isnan(FeedbackWaitingTime))
     
     set(TISortedPsychometricAxes,...
         'FontSize', 10,...
-        'XLim', [min(LogOdds), max(LogOdds)],...
+        'XLim', [-5 5],...
         'YLim', [0, 100])
     title(TISortedPsychometricAxes, 'TI Sorted Psychometric')
     xlabel('log(odds)')
@@ -587,12 +605,10 @@ if ~all(isnan(FeedbackWaitingTime))
     set(CalibrationAxes,...
         'FontSize', 10,...
         'XLim', [0 SessionData.SettingsFile.GUI.FeedbackDelayMax * 1.5])
+    
     % title(CalibrationHandle, 'Calibration');
     xlabel(CalibrationAxes, 'Invested Time (s)');
     ylabel(CalibrationAxes, 'Exploit Ratio (%)');
-    
-    % Value-TI GLM
-    %{
     ValueTIGLMAxes = axes(AnalysisFigure, 'Position', [0.84, 0.56, 0.15, 0.11]);
     hold(ValueTIGLMAxes, 'on')
 
@@ -631,7 +647,6 @@ if ~all(isnan(FeedbackWaitingTime))
         'FontSize', 10);
     ylabel(ValueTIGLMAxes, 'GLM Coeff.')
     title(ValueTIGLMAxes, 'Value-TI');
-    %}
     
     %% Time Investment (TI) (only NotBaited Waiting Time) across session 
     LRTrialTIAxes = axes(AnalysisFigure, 'Position', [0.45    0.36    0.37    0.11]);
