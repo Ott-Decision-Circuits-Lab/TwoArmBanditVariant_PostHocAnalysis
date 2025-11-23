@@ -13,7 +13,7 @@ ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
 Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
 
 %% calculate log likelihood & gradients
-[NegLogDataLikelihood, ~] = ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded);
+[NegLogDataLikelihood, ~] = ChoiceForaging(Parameters, nTrials, ChoiceLeft, Rewarded);
 GradLogLikelihood = zeros(1, length(Parameters));
 
 for iParameter = 1:length(Parameters)
@@ -27,7 +27,7 @@ for iParameter = 1:length(Parameters)
     ThetaMinus = Parameters(iParameter) * 0.99;
     NewParameters(iParameter) = ThetaMinus;
     
-    [NegLogDataLikelihoodMinus, ~] = ChoiceSymmetricForaging(NewParameters, nTrials, ChoiceLeft, Rewarded);
+    [NegLogDataLikelihoodMinus, ~] = ChoiceForaging(NewParameters, nTrials, ChoiceLeft, Rewarded);
 
     GradLogLikelihood(iParameter) = - ((NegLogDataLikelihoodPlus - NegLogDataLikelihood) ./ (ThetaPlus - Parameters(iParameter)) +...
                                       (NegLogDataLikelihoodMinus - NegLogDataLikelihood) ./ (ThetaMinus - Parameters(iParameter))) ./ 2;
