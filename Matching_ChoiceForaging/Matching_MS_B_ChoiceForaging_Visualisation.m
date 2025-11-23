@@ -52,7 +52,7 @@ if nargin < 2
 
     Prior.BurnIn = 200;
     Prior.nSample = 1000;
-    Prior.nChain = 2;
+    Prior.nChain = 8;
 
 elseif fieldnames(Prior)
     disp('Error: Unknown input format. No further analysis can be performed.')
