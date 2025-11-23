@@ -236,10 +236,10 @@ set(BackgroundDATotalValueAxes,...
     'Units', 'inches');
 hold(BackgroundDATotalValueAxes, 'on');
 
-ValidIdx = ~isnan(TotalValue) & ~isnan(dFEstimation);
+ValidIdx = ~isnan(PhotometryTotalValue) & ~isnan(TimeTrialStartdFEstimationZScore);
 
-XData = TotalValue(ValidIdx);
-YData = dFEstimationZScore(ValidIdx);
+XData = PhotometryTotalValue(ValidIdx);
+YData = TimeTrialStartdFEstimationZScore(ValidIdx);
 
 SampleSize = 1000;
 SampleThreshold = SampleSize / sum(ValidIdx);
@@ -250,7 +250,7 @@ BackgroundDATotalValueScatter = scatter(BackgroundDATotalValueAxes, XData(Sampli
                                         'CData', [1, 1, 1] * 0.5,...
                                         'SizeData', 12);
 
-[RValue, pValue] = corrcoef(TotalValue(ValidIdx), dFEstimationZScore(ValidIdx));
+[RValue, pValue] = corrcoef(XData, YData);
 
 pValueSymbol = '';
 if pValue(1, 2) < 0.001
@@ -269,8 +269,8 @@ BackgroundDATotalValueStatText = text(BackgroundDATotalValueAxes, 0.1, 0.2,...
                                       'FontSize', 24,...
                                       'Color', 'k');
 
-X = [ones(1, sum(ValidIdx)); TotalValue(ValidIdx)]';
-b = X \ dFEstimationZScore(ValidIdx)';
+X = [ones(1, sum(ValidIdx)); XData]';
+b = X \ YData';
 
 XData = [0, 0.6];
 YData = XData * b(2) + b(1);
@@ -283,8 +283,8 @@ set(BackgroundDATotalValueAxes,...
     'TickDir', 'out',...
     'XLim', [0, 0.6],...
     'XTick', [0, 0.5],...
-    'YLim', [-20, 20],...
-    'YTick', [-20, 0, 20],...
+    'YLim', [-2, 2],...
+    'YTick', [-2, 0, 2],...
     'FontSize', 24);
 xlabel(BackgroundDATotalValueAxes, 'Reward rate (a.u.)')
 ylabel(BackgroundDATotalValueAxes, 'dF/F (z)')

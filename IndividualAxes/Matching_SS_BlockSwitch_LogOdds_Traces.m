@@ -265,7 +265,7 @@ if ~isempty(ChoiceLeft) && ~all(isnan(ChoiceLeft))
         'YTick', [0, 100],...
         'FontSize', 24);
     xlabel(TracesAxes, 'Trial number')
-    ylabel(TracesAxes, 'P(c=L) (%)')
+    ylabel(TracesAxes, 'P(Left) (%)')
     % title('Block switching behaviour')
     %{
     yyaxis(TracesAxes, 'right')
@@ -281,12 +281,12 @@ if ~isempty(ChoiceLeft) && ~all(isnan(ChoiceLeft))
                                        'LineWidth', 1);
 
     %LegendString = {'$\textsf{P(r)}_\textsf{L}$', '$\textsf{P(r)}_\textsf{R}$', '$\textsf{P(c=L)}$'};
-    LegendString = {'P(r)_L', 'Rat', 'Model'};
+    LegendString = {'P(reward)_L', 'Rat', 'Model'};
     
     %warning('off', 'MATLAB:handle_graphics:exceptions:SceneNode')
     
     BlockSwitchLegend = legend(TracesAxes, LegendString,...
-                               'Position', [ 2.2  2.8,  3.6,  0.6],...
+                               'Position', [ 1.4  2.8,  4.4,  0.6],...
                                'NumColumns', 3,...
                                'Units', 'inches',...
                                'Color', 'none',...

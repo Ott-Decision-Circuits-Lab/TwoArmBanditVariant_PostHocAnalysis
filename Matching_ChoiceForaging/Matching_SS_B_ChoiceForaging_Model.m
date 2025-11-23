@@ -35,9 +35,9 @@ stuck, also MassVector may get into Nan
 
 for iChain = 1:Prior.nChain
     InitialParameters = MAPParameters;
-    InitialParameters([1, 3, 5]) = log(InitialParameters([1, 3, 5]) ./ (1 - InitialParameters([1, 3, 5])));
-    InitialParameters = InitialParameters + randn(6, 1);
-    InitialParameters([1, 3, 5]) = 1 ./ (1 + exp(-InitialParameters([1, 3, 5])));
+    InitialParameters([1, 4) = log(InitialParameters([1, 4]) ./ (1 - InitialParameters([1, 4])));
+    InitialParameters = InitialParameters + randn(4, 1);
+    InitialParameters([1, 4]) = 1 ./ (1 + exp(-InitialParameters([1, 4])));
     
     ChainInitialParameters{iChain} = InitialParameters;
     

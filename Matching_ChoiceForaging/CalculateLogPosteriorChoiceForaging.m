@@ -1,4 +1,4 @@
-function [LogPosterior, GradLogPosterior] = CalculateLogPosteriorChoiceSymmetricQ(Parameters, SessionData, Prior)
+function [LogPosterior, GradLogPosterior] = CalculateLogPosteriorChoiceForaging(Parameters, SessionData, Prior)
 
 %% unpack data
 nTrials = SessionData.nTrials;
@@ -22,12 +22,12 @@ for iParameter = 1:length(Parameters)
     NewParameters = Parameters;
     NewParameters(iParameter) = ThetaPlus;
 
-    [NegLogDataLikelihoodPlus, ~] = ChoiceSymmetricQLearning(NewParameters, nTrials, ChoiceLeft, Rewarded);
+    [NegLogDataLikelihoodPlus, ~] = ChoiceForaging(NewParameters, nTrials, ChoiceLeft, Rewarded);
     
     ThetaMinus = Parameters(iParameter) * 0.99;
     NewParameters(iParameter) = ThetaMinus;
     
-    [NegLogDataLikelihoodMinus, ~] = ChoiceSymmetricQLearning(NewParameters, nTrials, ChoiceLeft, Rewarded);
+    [NegLogDataLikelihoodMinus, ~] = ChoiceSymmetricForaging(NewParameters, nTrials, ChoiceLeft, Rewarded);
 
     GradLogLikelihood(iParameter) = - ((NegLogDataLikelihoodPlus - NegLogDataLikelihood) ./ (ThetaPlus - Parameters(iParameter)) +...
                                       (NegLogDataLikelihoodMinus - NegLogDataLikelihood) ./ (ThetaMinus - Parameters(iParameter))) ./ 2;
@@ -43,39 +43,26 @@ InverseTemperaturePrior = pdf('Normal', Parameters(2), Prior.InverseTemperatureM
 LogInverseTemperaturePrior = log(InverseTemperaturePrior); % = -log sigma - 0.5 * log (2*pi) - (x-mu).^2 ./ (2 * sigma^2)
 GradLogInverseTemperaturePrior = -(Parameters(2) - Prior.InverseTemperatureMean) ./ Prior.InverseTemperatureSigma.^2;
 
-ForgettingRatePrior = pdf('Beta', Parameters(3), Prior.ForgettingRateAlpha, Prior.ForgettingRateBeta);
+ThresholdPrior = pdf('Normal', Parameters(3), Prior.ThresholdMean, Prior.ThresholdSigma);
+LogThresholdPrior = log(ThresholdPrior);
+GradLogThresholdPrior = -(Parameters(3) - Prior.ThresholdMean) ./ Prior.ThresholdSigma.^2;
+
+ForgettingRatePrior = pdf('Beta', Parameters(4), Prior.ForgettingRateAlpha, Prior.ForgettingRateBeta);
 LogForgettingRatePrior = log(ForgettingRatePrior);
-GradLogForgettingRatePrior = (Prior.ForgettingRateAlpha - 1) ./ Parameters(3) +...
-                               - (Prior.ForgettingRateBeta - 1) ./ (1 - Parameters(3));
-
-ChoiceStickinessPrior = pdf('Normal', Parameters(4), Prior.ChoiceStickinessMean, Prior.ChoiceStickinessSigma);
-LogChoiceStickinessPrior = log(ChoiceStickinessPrior);
-GradLogChoiceStickinessPrior = -(Parameters(4) - Prior.ChoiceStickinessMean) ./ Prior.ChoiceStickinessSigma.^2;
-
-ChoiceForgettingRatePrior = pdf('Beta', Parameters(5), Prior.ChoiceForgettingRateAlpha, Prior.ChoiceForgettingRateBeta);
-LogChoiceForgettingRatePrior = log(ChoiceForgettingRatePrior);
-GradLogChoiceForgettingRatePrior = (Prior.ChoiceForgettingRateAlpha - 1) ./ Parameters(5) +...
-                                       - (Prior.ChoiceForgettingRateBeta - 1) ./ (1 - Parameters(5));
-
-BiasPrior = pdf('Normal', Parameters(6), Prior.BiasMean, Prior.BiasSigma);
-LogBiasPrior = log(BiasPrior);
-GradLogBiasPrior = -(Parameters(6) - Prior.BiasMean) ./ Prior.BiasSigma.^2;
+GradLogForgettingRatePrior = (Prior.ForgettingRateAlpha - 1) ./ Parameters(4) +...
+                               - (Prior.ForgettingRateBeta - 1) ./ (1 - Parameters(4));
 
 %% calculate log posterior & gradients
 LogPosterior = - NegLogDataLikelihood +...
                  LogLearningRatePrior +...
                  LogInverseTemperaturePrior +...
                  LogForgettingRatePrior +...
-                 LogChoiceStickinessPrior +...
-                 LogChoiceForgettingRatePrior +...
-                 LogBiasPrior;
+                 LogThresholdPrior;
 
 GradLogPosterior = GradLogLikelihood +...
                    [GradLogLearningRatePrior,...
                     GradLogInverseTemperaturePrior,...
                     GradLogForgettingRatePrior,...
-                    GradLogChoiceStickinessPrior,...
-                    GradLogChoiceForgettingRatePrior,...
-                    GradLogBiasPrior];
+                    GradLogThresholdPrior];
 
 end

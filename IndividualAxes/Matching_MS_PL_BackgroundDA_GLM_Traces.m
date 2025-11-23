@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_PL_BackgroundDA_Traces(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
+function AnalysisFigure = Matching_MS_PL_BackgroundDA_GLM_Traces(DataFolderPath, PhotometryDatasetFilePath, ModelsFilePath, FigureSize, AxeSize)
 % for making an example of the task structure
 % figure 'unit' set as 'inch' so that we know exactly the meters to pixels
 % Developed by Antonio Lee @ BCCN Berlin
@@ -29,7 +29,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_PL_BackgroundDA_Traces';
+AnalysisName = 'Matching_MS_PL_BackgroundDA_GLM_Traces';
 
 %% PhotometryDataset
 if nargin < 2
@@ -172,7 +172,7 @@ TotalValue = ChosenValue + UnchosenValue;
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [0.2, 0.2, 6.1, 5.2];
+    FigureSize = [0.2, 0.2, 5.6, 4.5];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -225,7 +225,7 @@ SortedAlignedData = NormalisedPreAlignedPhotometryData(SortedValidIdx, :);
 
 %% Background DA vs Total value
 if nargin < 5
-    AxeSize = [1.4, 1.2, 0.6 * diff(AlignmentWindow), 2.5];
+    AxeSize = [1.2, 1.2, 0.6 * diff(AlignmentWindow), 2.5];
 end
 
 BackgroundDATracesAxes = axes(AnalysisFigure,...
@@ -237,70 +237,85 @@ set(BackgroundDATracesAxes,...
     'Units', 'inches');
 hold(BackgroundDATracesAxes, 'on');
 
-% set colour
-ColourMap = othercolor('ScalettWhite2', 128); % ColourMap, function from helper folder
-ColourMap = flip(ColourMap, 1);
-colormap(BackgroundDATracesAxes, ColourMap);
+% GLM
+Regressors = [TotalValue', ChosenValue', DatasetObject.TrialEventTimeData.Rewarded' == 1];
+RegressorNames = {'Reward rate', 'V_{chosen}', 'Rewarded'};
 
-CLim = [min(PhotometryTotalValue), max(PhotometryTotalValue)];
-ColourBar = colorbar(BackgroundDATracesAxes);
-set(ColourBar,...
-    'Limits', CLim,...
-    'TickDirection', 'out')
-ylabel(ColourBar, 'Reward rate (a.u.)')
+nRegressor = width(Regressors);
+YData = TimeChoicedFTrace;
 
-set(BackgroundDATracesAxes,...
-    'Position', AxeSize,...
+CoefficientDynamics = [];
+Upper95CI = []; % confidence interval
+Lower95CI = [];
+pValue = [];
+for iTimePoint = 1:width(YData)
+    LinearModel = fitlm(Regressors(AlignmentDataValidity, :), YData(AlignmentDataValidity, iTimePoint), 'RobustOpts', 'on');
+    CoefficientDynamics(:, iTimePoint) = LinearModel.Coefficients.Estimate;
+    pValue(:, iTimePoint) = LinearModel.Coefficients.pValue;
+
+    CI = coefCI(LinearModel);
+    Lower95CI(:, iTimePoint) = CI(:, 1);
+    Upper95CI(:, iTimePoint) = CI(:, 2);
+end
+CoefficientDynamics = [CoefficientDynamics(2:end, :); CoefficientDynamics(1, :)];
+pValue = [pValue(2:end, :); pValue(1, :)];
+Lower95CI = [Lower95CI(2:end, :); Lower95CI(1, :)];
+Upper95CI = [Upper95CI(2:end, :); Upper95CI(1, :)];
+
+% plotting
+ColourMap = [ColourPalette.Incorrect; ColourPalette.General; ColourPalette.Pooled; ColourPalette.Session];
+
+for iRegressor = 1:(nRegressor + 1)
+    CoefficientDynamicsLine(iRegressor) = line(BackgroundDATracesAxes,...
+                                               'XData', AlignedTime,...
+                                               'YData', smooth(CoefficientDynamics(iRegressor, :), 0.1),...
+                                               'Color', ColourMap(iRegressor, :),...
+                                               'LineStyle', '-',...
+                                               'LineWidth', 2);
+end
+
+for iRegressor = 1:(nRegressor + 1) % separated to allow easy legend labelling
+    Upper95CILine(iRegressor) = line(BackgroundDATracesAxes,...
+                                     'XData', AlignedTime,...
+                                     'YData', smooth(Upper95CI(iRegressor, :), 0.1),...
+                                     'Color', ColourMap(iRegressor, :),...
+                                     'LineStyle', ':',...
+                                     'LineWidth', 1.5);
+    
+    Lower95CILine(iRegressor) = line(BackgroundDATracesAxes,...
+                                     'XData', AlignedTime,...
+                                     'YData', smooth(Lower95CI(iRegressor, :), 0.1),...
+                                     'Color', ColourMap(iRegressor, :),...
+                                     'LineStyle', ':',...
+                                     'LineWidth', 1.5);
+    
+end
+
+LegendText = [RegressorNames(:)', {'Intercept'}];
+
+RegressordFLegend = legend(BackgroundDATracesAxes, LegendText,...
+                           'Position', [4.5, 2.9, 1.3, 0.6],...
+                           'NumColumns', 1,...
+                           'Units', 'inches',...
+                           'Color', 'w',...
+                           'Box', 'on');
+
+set(RegressordFLegend,...
+    'Position', [3.1, 1.2, 2.2, 2.5],...
     'Units', 'inches');
 
-Idx = [0.25, 0.5, 0.75];
-Quantiles = quantile(PhotometryTotalValue, Idx);
-Ranges = [quantile(PhotometryTotalValue, Idx - 0.05)', quantile(PhotometryTotalValue, Idx + 0.05)'];
-
-for iQuantile = 1:length(Quantiles)
-    Valid = PhotometryTotalValue > Ranges(iQuantile, 1) & PhotometryTotalValue < Ranges(iQuantile, 2);
-    
-    SortedValidIdx = SortingIdx(AlignmentDataValidity(SortingIdx) == 1 & Valid(SortingIdx) == 1);
-    
-    YData = mean(NormalisedPreAlignedPhotometryData(SortedValidIdx , :), 'omitnan');
-    %SEM = std(NormalisedPreAlignedPhotometryData(SortedValidIdx , :), 'omitnan') ./ sqrt(length(SortedValidIdx));
-
-    BackgroundDATracesLine(iQuantile) = line(BackgroundDATracesAxes, AlignedTime, YData,...
-                                             'Color', ColourMap(128 * Idx(iQuantile), :),...
-                                             'LineWidth', 2);
-    %{
-    BackgroundDATracesUpperLine(iQuantile) = line(BackgroundDATracesAxes, AlignedTime, YData + SEM,...
-                                                  'Color', ColourMap(128 * Idx(iQuantile), :),...
-                                                  'LineStyle', ':',...
-                                                  'LineWidth', 1);
-
-    BackgroundDATracesLowerLine(iQuantile) = line(BackgroundDATracesAxes, AlignedTime, YData - SEM,...
-                                                  'Color', ColourMap(128 * Idx(iQuantile), :),...
-                                                  'LineStyle', ':',...
-                                                  'LineWidth', 1);
-    %}
-end
-
-if AlignmentWindow(1) < 0 && AlignmentWindow(end) > 0
-    IdxZero = find(AlignedTime > 0, 1, 'first') - 1;
-    XTick = [AlignmentWindow(1), 0, AlignmentWindow(end)];
-else
-    XTick = [AlignmentWindow(1), AlignmentWindow(end)];
-end
-
-YLim = quantile(abs(SortedAlignedData), [.1], 2);
-YLim = [-max(YLim(:, 1)), max(YLim(:, 1))];
-
+% set colour
 set(BackgroundDATracesAxes,...
+    'Position', AxeSize,...
+    'Units', 'inches',...
     'TickDir', 'out',...
     'XLim', AlignmentWindow,...
-    'XTick', XTick,...
-    'XTickLabel', XTick,...
-    'YLim', YLim,...
-    'YTick', [-5, 0, 5],...
+    'XTick', sort([AlignmentWindow, 0]),...
+    'YLim', [-5, 15],...
+    'YTick', [-5, 5, 15],...
     'FontSize', 24);
 xlabel(BackgroundDATracesAxes, 'Time (s)')
-ylabel(BackgroundDATracesAxes, 'dF/F (%)')
+ylabel(BackgroundDATracesAxes, '\beta')
 title(BackgroundDATracesAxes, 'At choice')
 
 exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '_', AlignmentName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);

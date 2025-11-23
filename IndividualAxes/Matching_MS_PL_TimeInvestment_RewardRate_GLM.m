@@ -213,7 +213,7 @@ DiffValue = ChosenValue - UnchosenValue;
 %% Initiatize figure
 % create figure
 if nargin < 4
-    FigureSize = [0.2, 2.0, 5.2, 5.8];
+    FigureSize = [0.2, 2.0, 5.8, 5.8];
 end
 AnalysisFigure = figure('Position', FigureSize,...
                         'NumberTitle', 'off',...
@@ -266,7 +266,7 @@ dFEstimation = dFEstimation';
 %}
 %% TI  ~ Q + R
 if nargin < 5
-    AxeSize = [ 1.2, 2.0, 2.9, 2.8];
+    AxeSize = [ 1.2, 2.2, 3.8, 2.8];
 end
 
 GLMCoeffAxes = axes(AnalysisFigure,...
@@ -308,7 +308,7 @@ for iCoeff = 1:length(pValues)
          'HorizontalAlignment', 'center')
 end
 
-Labels = {"\beta_0", "Q_{chosen}", "Reward rate", "V_{chosen}", "V_{unchosen}"};
+Labels = {"Intercept", "Choice value", "Reward rate", "V_{chosen}", "V_{unchosen}"};
 
 set(GLMCoeffAxes,...
     'FontSize', 24,...
@@ -316,10 +316,11 @@ set(GLMCoeffAxes,...
     'XTick', 1:width(XData)+1,...
     'XTickLabel', Labels,...
     'XTickLabelRotation', 90,...
-    'YLim', [-0.5, 1.5]);
+    'YLim', [-0.5, 1.5],...
+    'TickDir', 'out');
 ylabel(GLMCoeffAxes, '\beta')
 title(GLMCoeffAxes,...
-      strcat('TI(z) ~ \betaX'))
+      strcat('Time investment (z) ~ \betaX'))
 
 exportgraphics(AnalysisFigure, strcat(RatName, '_', SessionDateRange, '_', AnalysisName, '.pdf'), 'ContentType', 'vector', 'Resolution', 300);
 end

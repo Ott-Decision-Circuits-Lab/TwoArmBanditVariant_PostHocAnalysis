@@ -187,7 +187,31 @@ set(ThresholdMAPAxes,...
     'XTick', 0,...
     'XTickLabel', '\theta',...
     'YAxisLocation', 'right')
-ylabel(ThresholdMAPAxes, 'MAP estimate (a.u.)')
+
+ChoiceForgettingRateMAPAxes = axes(AnalysisFigure, 'Position', [0.42    0.75    0.02    0.19]);
+hold(ChoiceForgettingRateMAPAxes, 'on');
+
+ChoiceForgettingRateMAPs = nan(1, nSessions);
+
+set(ChoiceForgettingRateMAPAxes,...
+    'FontSize', 10,...
+    'XLim', [-1, 1],...
+    'XTick', 0,...
+    'XTickLabel', '\gamma_c',...
+    'YAxisLocation', 'right')
+
+BiasMAPAxes = axes(AnalysisFigure, 'Position', [0.47    0.75    0.02    0.19]);
+hold(BiasMAPAxes, 'on');
+
+BiasMAPs = nan(1, nSessions);
+
+set(BiasMAPAxes,...
+    'FontSize', 10,...
+    'XLim', [-1, 1],...
+    'XTick', 0,...
+    'XTickLabel', 'bias',...
+    'YAxisLocation', 'right')
+ylabel(BiasMAPAxes, 'MAP estimate (a.u.)')
 
 % Vevaiometric      
 VevaiometricAxes = axes(AnalysisFigure, 'Position', [0.01    0.48    0.15    0.19]);
@@ -451,7 +475,7 @@ set(MTLogZScoreDistributionAxes,...
     'FontSize', 10);
 xlabel(MTLogZScoreDistributionAxes, '')
 title(MTLogZScoreDistributionAxes, '');
-%{
+
 % Value-TI GLM Coeff.
 ValueTIGLMAxes = axes(AnalysisFigure, 'Position', [0.58, 0.78, 0.10, 0.16]);
 hold(ValueTIGLMAxes, 'on')
@@ -525,7 +549,7 @@ set(CLOTVTISqrtZScoreGLMAxes,...
     'XTickLabelRotation', 90,...
     'FontSize', 10);
 title(CLOTVTISqrtZScoreGLMAxes, 'CLOTV-sqrt(TI) (z)');
-%}
+
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 %% Plotting
@@ -626,17 +650,24 @@ for iSession = 1:length(DataHolder)
     [ProbDensity, Values] = ksdensity(Chain(:, 2));
     InverseTemperatureMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 4));
+    [ProbDensity, Values] = ksdensity(Chain(:, 3));
     ForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 3));
+    [ProbDensity, Values] = ksdensity(Chain(:, 4));
     ThresholdMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    MAPEstimates = [LearningRateMAPs(iSession), InverseTemperatureMAPs(iSession), ForgettingRateMAPs(iSession),...
-                    ThresholdMAPs(iSession)];
+    [ProbDensity, Values] = ksdensity(Chain(:, 5));
+    ChoiceForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [NegLogDataLikelihood, Values] = ChoiceForaging(MAPEstimates, nTrials, ChoiceLeft, Rewarded);
-    LogOdds = Values.ChoiceLeftLogOdds;
+    [ProbDensity, Values] = ksdensity(Chain(:, 6));
+    BiasMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
+    
+    MAPEstimates = [LearningRateMAPs(iSession), InverseTemperatureMAPs(iSession), ForgettingRateMAPs(iSession),...
+                    ThresholdMAPs(iSession), ChoiceForgettingRateMAPs(iSession), BiasMAPs(iSession)];
+    
+    [NegLogDataLikelihood, Values] = ChoiceSymmetricQLearning(MAPEstimates, nTrials, ChoiceLeft, Rewarded);
+    LogOdds = InverseTemperatureMAPs(iSession) * (Values.LeftValue - Values.RightValue) +...
+              + ThresholdMAPs(iSession) * Values.ChoiceMemory + BiasMAPs(iSession);
     
     PredictedLeftChoiceProb = 1 ./ (1 + exp(-LogOdds));
 
