@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_SS_MLE_ChoiceForaging_Visualisation(DataFile, Model)
+function AnalysisFigure = Matching_SS_B_ChoiceSymmetricQLearning_Visualisation(DataFile, Model)
 % SS = SingleSession
 % MLE = Maximum Log Likelihood
 % Matching Analysis Function
@@ -45,7 +45,7 @@ elseif ~strcmpi(SessionData.SettingsFile.GUIMeta.RiskType.String{SessionData.Set
     return
 end
 
-AnalysisName = 'Matching_SS_MLE_ChoiceForaging';
+AnalysisName = 'Matching_SS_B_ChoiceSymmetricQLearning';
 
 %% Load related data to local variabels
 RatID = str2double(SessionData.Info.Subject);
@@ -215,40 +215,50 @@ end
 % model
 if nargin < 2
     try
-        Model = Matching_SS_MLE_ChoiceForaging_Model(SessionData);
+        Model = Matching_SS_B_ChoiceSymmetricQLearning_Model(SessionData);
     catch
         disp('Error: problem in modelling. N further analysis is possible')
         return
     end
 end
 
-EstimatedParameters = Model.EstimatedParameters;
-MinNegLogDataLikelihood = Model.MinNegLogDataLikelihood;
+Chain = vertcat(Model.Chains{:});
 
-if isempty(EstimatedParameters) || isnan(MinNegLogDataLikelihood) 
-    disp('Error: fail to run model');
-    return
-end
+[ProbDensity, Values] = ksdensity(Chain(:, 1));
+LearningRate = Values(ProbDensity == max(ProbDensity));
 
-% extract parameters
-LearningRate = EstimatedParameters(1); % alpha
-InverseTemperature = EstimatedParameters(2); % beta
-Threshold = EstimatedParameters(3); % theta
-ForgettingRate = EstimatedParameters(4); % gamma
+[ProbDensity, Values] = ksdensity(Chain(:, 2));
+InverseTemperature = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 3));
+ForgettingRate = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 4));
+ChoiceStickiness = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 5));
+ChoiceForgettingRate = Values(ProbDensity == max(ProbDensity));
+
+[ProbDensity, Values] = ksdensity(Chain(:, 6));
+Bias = Values(ProbDensity == max(ProbDensity));
+
+EstimatedParameters = [LearningRate, InverseTemperature, ForgettingRate,...
+                       ChoiceStickiness, ChoiceForgettingRate, Bias];
 
 % make prediction from Model (i.e. estimated parameters)
-[~, Values] = ChoiceForaging(EstimatedParameters, nTrials, ChoiceLeft, Rewarded);
-ExploitingValue = Values.ExploitingValue;
-Exploited = Values.Exploited;
-ChoiceExploitLogOdds = Values.ChoiceExploitLogOdds;
-ChoiceLeftLogOdds = Values.ChoiceLeftLogOdds;
+[~, Values] = ChoiceSymmetricQLearning(EstimatedParameters, nTrials, ChoiceLeft, Rewarded);
+LeftValue = Values.LeftValue;
+RightValue = Values.RightValue;
+ChoiceMemory = Values.ChoiceMemory;
 
-PredictedExploitChoiceProb = 1 ./ (1 + exp(-ChoiceExploitLogOdds));
-ModelResiduals = Exploited - PredictedExploitChoiceProb;
+LogOdds = InverseTemperature * (LeftValue - RightValue) +...
+          + ChoiceStickiness * ChoiceMemory + Bias;
+
+PredictedLeftChoiceProb = 1 ./ (1 + exp(-LogOdds));
+ModelResiduals = ChoiceLeft - PredictedLeftChoiceProb;
 AbsModelResiduals = abs(ModelResiduals);
 
-PredictedChoiceLeftProb = 1 ./ (1 + exp(-ChoiceLeftLogOdds));
-PredictedChoice = double(PredictedChoiceLeftProb >= 0.5);
+PredictedChoice = double(PredictedLeftChoiceProb >= 0.5);
 PredictedChoice(isnan(ChoiceLeft)) = nan;
 
 % plot prediction
@@ -258,22 +268,22 @@ SmoothedPredictedChoicePlot = plot(BlockSwitchAxes, idxTrial, SmoothedPredictedC
                                    'Color', ColourPalette.RL,...
                                    'LineWidth', 0.2);
 
-ExploredIdx = find(Exploited == 0);
-ExploitedIdx = find(Exploited == 1);
-ExploredChoicePlot = plot(BlockSwitchAxes, ExploredIdx, ChoiceLeft(ExploredIdx) * 120 - 10,...
-                          'Color', 'none',...
-                          'Marker', '.',...
-                          'MarkerEdgeColor', ColourPalette.Explore,...
-                          'MarkerSize', 5);
+ExploringTrial = find(abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5);
+ExploitingTrial = find(abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5);
+PredictedExplorationChoicePlot = plot(BlockSwitchAxes, ExploringTrial, 110 - PredictedChoice(ExploringTrial) * 120,...
+                                      'Color', 'none',...
+                                      'Marker', '.',...
+                                      'MarkerEdgeColor', ColourPalette.Explore,...
+                                      'MarkerSize', 5);
 
-ExploitedChoicePlot = plot(BlockSwitchAxes, ExploitedIdx, ChoiceLeft(ExploitedIdx) * 130 - 15,...
-                           'Color', 'none',...
-                           'Marker', '.',...
-                           'MarkerEdgeColor', ColourPalette.Exploit,...
-                           'MarkerSize', 5);
+PredictedExploitationChoicePlot = plot(BlockSwitchAxes, ExploitingTrial, PredictedChoice(ExploitingTrial) * 130 - 15,...
+                                       'Color', 'none',...
+                                       'Marker', '.',...
+                                       'MarkerEdgeColor', ColourPalette.Exploit,...
+                                       'MarkerSize', 5);
 
 LegendString = {'$\textsf{P(r)}_\textsf{L}$', '$\textsf{P(r)}_\textsf{R}$', '$\textsf{c}_\textsf{smooth}$',...
-                '$\hat\textsf{c}_\textsf{smooth}$', '$\textsf{c}_\textsf{explore}$', '$\textsf{c}_\textsf{exploit}$'};
+                '$\hat\textsf{c}_\textsf{smooth}$', '$\hat\textsf{c}_\textsf{explore}$', '$\hat\textsf{c}_\textsf{exploit}$'};
 
 warning('off', 'MATLAB:handle_graphics:exceptions:SceneNode')
 
@@ -289,65 +299,72 @@ disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 PsychometricAxes = axes(AnalysisFigure, 'Position', [0.23    0.56    0.15    0.11]);
 hold(PsychometricAxes, 'on')
 
-% Choice Psychometric
-ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
-ValidChoiceLeftLogOdds = ChoiceLeftLogOdds(ValidTrial);
-ValidExploitLogOdds = ChoiceExploitLogOdds(ValidTrial);
-ValidChoice = ChoiceLeft(ValidTrial);
-ValidExploited = Exploited(ValidTrial);
-
-dvbin = linspace(min(ValidExploitLogOdds), max(ValidExploitLogOdds), 10);
-[xdata, ydata, error] = BinData(ValidExploitLogOdds, ValidExploited, dvbin);
-vv = ~isnan(xdata) & ~isnan(ydata) & ~isnan(error);
-
-PsychometricErrorBar = errorbar(PsychometricAxes, xdata(vv), ydata(vv)*100, error(vv)*100,...
-                                'LineStyle', 'none',...
-                                'LineWidth', 1.5,...
-                                'Color', 'k',...
-                                'Marker', 'o',...
-                                'MarkerEdgeColor', 'k');
-
-PsychometricGLM = fitglm(ValidExploitLogOdds, ValidExploited(:), 'Distribution', 'binomial');
-PsychometricGLMPlot = plot(PsychometricAxes, xdata, predict(PsychometricGLM, xdata)*100, '-', 'Color', [.5,.5,.5], 'LineWidth', 0.5);
-
 set(PsychometricAxes,...
     'FontSize', 10,...
-    'XLim', [min(dvbin), max(dvbin)],...
+    'XLim', [-5 5],...
     'YLim', [0, 100],...
     'YAxisLocation', 'right')
 title(PsychometricAxes, 'Psychometric')
-xlabel('log(odds_{exploit})')
-ylabel('Exploited choices (%)')
+xlabel('log(odds)')
+ylabel('Left Choices (%)')
+
+% Choice Psychometric
+ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
+ValidLogOdds = LogOdds(ValidTrial);
+ValidChoice = ChoiceLeft(ValidTrial);
+dvbin = linspace(-max(abs(ValidLogOdds)), max(abs(ValidLogOdds)), 10);
+[xdata, ydata, error] = BinData(ValidLogOdds, ValidChoice, dvbin);
+vv = ~isnan(xdata) & ~isnan(ydata) & ~isnan(error);
+
+ChoicePsychometricErrorBar = errorbar(PsychometricAxes, xdata(vv), ydata(vv)*100, error(vv)*100,...
+                                      'LineStyle', 'none',...
+                                      'LineWidth', 1.5,...
+                                      'Color', 'k',...
+                                      'Marker', 'o',...
+                                      'MarkerEdgeColor', 'k');
+
+PsychometricGLM = fitglm(ValidLogOdds, ValidChoice(:), 'Distribution', 'binomial');
+PsychometricGLMPlot = plot(PsychometricAxes, xdata, predict(PsychometricGLM, xdata)*100, '-', 'Color', [.5,.5,.5], 'LineWidth', 0.5);
 
 %% Coefficient of Symmetric Q with forgetting and stickiness
 ModelParameterAxes = axes(AnalysisFigure, 'Position', [0.04    0.56    0.15    0.11]);
 hold(ModelParameterAxes, 'on');
 
 set(ModelParameterAxes, 'FontSize', 10)
-title(ModelParameterAxes, 'Foraging-RL Fitted Parameters')
+title(ModelParameterAxes, 'Q-RL Fitted Parameters')
 
-LearningRateText = text(ModelParameterAxes, 0, 4,...
+LearningRateText = text(ModelParameterAxes, 0, 6,...
                         strcat('\alpha = ', sprintf('%5.3f', LearningRate)),...
                         'FontSize', 12,...
                         'Interpreter', 'tex');
 
-InverseTemperatureText = text(ModelParameterAxes, 0, 3,...
+InverseTemperatureText = text(ModelParameterAxes, 0, 5,...
                               strcat('\beta = ', sprintf('%5.2f', InverseTemperature)),...
                               'FontSize', 12,...
                               'Interpreter', 'tex');
 
-ThresholdText = text(ModelParameterAxes, 0, 2,...
-                     strcat('\theta = ', sprintf('%5.3f', Threshold)),...
-                     'FontSize', 12,...
-                     'Interpreter', 'tex');
-
-ForgettingRateText = text(ModelParameterAxes, 0, 1,...
+ForgettingRateText = text(ModelParameterAxes, 0, 4,...
                           strcat('\gamma = ', sprintf('%5.3f', ForgettingRate)),...
                           'FontSize', 12,...
                           'Interpreter', 'tex');
 
+ChoiceStickinessText = text(ModelParameterAxes, 0, 3,...
+                            strcat('\phi = ', sprintf('%5.3f', ChoiceStickiness)),...
+                            'FontSize', 12,...
+                            'Interpreter', 'tex');
+
+ChoiceForgettingRateText = text(ModelParameterAxes, 0, 2,...
+                                strcat('\gamma_c = ', sprintf('%5.3f', ChoiceForgettingRate)),...
+                                'FontSize', 12,...
+                                'Interpreter', 'tex');
+
+BiasText = text(ModelParameterAxes, 0, 1,...
+                strcat('bias = ', sprintf('%5.3f', Bias)),...
+                'FontSize', 12,...
+                'Interpreter', 'tex');
+
 set(ModelParameterAxes,...
-    'YLim', [0, 5],...
+    'YLim', [0, 6],...
     'XTick', [],...
     'YTick', [],...
     'XColor', 'w',...
@@ -380,7 +397,7 @@ set(ResidualLaggedAxes,...
 %% Residual Histogram
 ResidualFittedAxes = axes(AnalysisFigure, 'Position', [0.04    0.19    0.15    0.11]);
 
-ResidualFittedScatter = scatter(ResidualFittedAxes, PredictedExploitChoiceProb, ModelResiduals,...
+ResidualFittedScatter = scatter(ResidualFittedAxes, PredictedLeftChoiceProb, ModelResiduals,...
                                 'SizeData', 1,...
                                 'CData', [0, 0, 1]);
 
@@ -445,8 +462,8 @@ if ~all(isnan(FeedbackWaitingTime))
     hold(TrialTIAxes, 'on');
     
     NotBaited = any(~Baited .* ChoiceLeftRight, 1) & (IncorrectChoice ~= 1);
-    Explore = Exploited == 0; % i.e. deviated from model, not the same as deviate from previous choice
-    Exploit = Exploited == 1; % i.e. align with model, not the same as repeating previous choice
+    Explore = abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5;
+    Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5;
     
     ExploringTITrial = NotBaited & Explore;
     ExploitingTITrial = NotBaited & Exploit;
@@ -483,8 +500,8 @@ if ~all(isnan(FeedbackWaitingTime))
     VevaiometricAxes = axes(AnalysisFigure, 'Position', [0.89    0.82    0.10    0.11]);
     hold(VevaiometricAxes, 'on')
     
-    ExploringLogOdds = ChoiceExploitLogOdds(ExploringTITrial);
-    ExploitingLogOdds = ChoiceExploitLogOdds(ExploitingTITrial);
+    ExploringLogOdds = LogOdds(ExploringTITrial);
+    ExploitingLogOdds = LogOdds(ExploitingTITrial);
     
     ExploringTrialTIScatter = scatter(VevaiometricAxes, ExploringLogOdds, ExploringTI,...
                                       'Marker', '.',...
@@ -509,10 +526,10 @@ if ~all(isnan(FeedbackWaitingTime))
     
     set(VevaiometricAxes,...
         'FontSize', 10,...
-        'XLim', [min(ChoiceExploitLogOdds), max(ChoiceExploitLogOdds)],...
+        'XLim', [-5 5],...
         'YLim', [0 SessionData.SettingsFile.GUI.FeedbackDelayMax * 1.5])
     title(VevaiometricAxes, 'Vevaiometric');
-    xlabel(VevaiometricAxes, 'log(odds_{exploit})');
+    xlabel(VevaiometricAxes, 'log(odds)');
     % ylabel(VevaiometricAxes, 'Invested Time (s)');
     
     %% Psychometrics of NotBaited Choice with High- and Low-time investment (TI)
@@ -525,7 +542,7 @@ if ~all(isnan(FeedbackWaitingTime))
     HighTITrial = FeedbackWaitingTime>TImed & NotBaited;
     LowTITrial = FeedbackWaitingTime<=TImed & NotBaited;
     
-    [xdata, ydata, error] = BinData(ChoiceExploitLogOdds(HighTITrial), Exploited(HighTITrial), dvbin);
+    [xdata, ydata, error] = BinData(LogOdds(HighTITrial), ChoiceLeft(HighTITrial), dvbin);
     vv = ~isnan(xdata) & ~isnan(ydata) & ~isnan(error);
 
     HighTIErrorBar = errorbar(TISortedPsychometricAxes, xdata(vv), ydata(vv)*100, error(vv)*100,...
@@ -536,7 +553,7 @@ if ~all(isnan(FeedbackWaitingTime))
                               'MarkerEdgeColor', 'k',...
                               'Color', 'k');
 
-    [xdata, ydata, error] = BinData(ChoiceExploitLogOdds(LowTITrial), Exploited(LowTITrial), dvbin);
+    [xdata, ydata, error] = BinData(LogOdds(LowTITrial), ChoiceLeft(LowTITrial), dvbin);
     vv = ~isnan(xdata) & ~isnan(ydata) & ~isnan(error);
 
     LowTIErrorBar = errorbar(TISortedPsychometricAxes, xdata(vv), ydata(vv)*100, error(vv)*100,...
@@ -547,13 +564,13 @@ if ~all(isnan(FeedbackWaitingTime))
                              'MarkerEdgeColor', [0.5 0.5 0.5],...
                              'Color', [0.5 0.5 0.5]);
     
-    HighTIGLM = fitglm(ChoiceExploitLogOdds(HighTITrial), Exploited(HighTITrial), 'Distribution', 'binomial');
+    HighTIGLM = fitglm(LogOdds(HighTITrial), ChoiceLeft(HighTITrial), 'Distribution', 'binomial');
     HighTIGLMPlot = plot(TISortedPsychometricAxes, xdata, predict(HighTIGLM, xdata)*100,...
                          'Marker', 'none',...
                          'Color', 'k',...
                          'LineWidth', 0.5);
 
-    LowTIGLM = fitglm(ChoiceExploitLogOdds(LowTITrial), Exploited(LowTITrial), 'Distribution', 'binomial');
+    LowTIGLM = fitglm(LogOdds(LowTITrial), ChoiceLeft(LowTITrial), 'Distribution', 'binomial');
     LowTIGLMPlot = plot(TISortedPsychometricAxes, xdata, predict(LowTIGLM, xdata)*100,...
                         'Marker', 'none',...
                         'Color', [0.5, 0.5, 0.5],...
@@ -565,17 +582,17 @@ if ~all(isnan(FeedbackWaitingTime))
     
     set(TISortedPsychometricAxes,...
         'FontSize', 10,...
-        'XLim', [min(ChoiceExploitLogOdds), max(ChoiceExploitLogOdds)],...
+        'XLim', [-5 5],...
         'YLim', [0, 100])
     title(TISortedPsychometricAxes, 'TI Sorted Psychometric')
-    xlabel('log(odds_{exploit})')
+    xlabel('log(odds)')
     % ylabel('Left Choices (%)')
     
     %% callibration plot
     CalibrationAxes = axes(AnalysisFigure, 'Position', [0.66    0.56    0.15    0.11]);
     hold(CalibrationAxes, 'on')
     
-    Correct = AbsModelResiduals(NotBaited) < 0.5; %'correct'
+    Correct = Exploit(NotBaited); %'correct'
     edges = linspace(min(TI), max(TI), 8);
     
     [xdata, ydata, error] = BinData(TI, Correct, edges);
@@ -588,12 +605,10 @@ if ~all(isnan(FeedbackWaitingTime))
     set(CalibrationAxes,...
         'FontSize', 10,...
         'XLim', [0 SessionData.SettingsFile.GUI.FeedbackDelayMax * 1.5])
+    
     % title(CalibrationHandle, 'Calibration');
     xlabel(CalibrationAxes, 'Invested Time (s)');
     ylabel(CalibrationAxes, 'Exploit Ratio (%)');
-    
-    % Value-TI GLM
-    %{
     ValueTIGLMAxes = axes(AnalysisFigure, 'Position', [0.84, 0.56, 0.15, 0.11]);
     hold(ValueTIGLMAxes, 'on')
 
@@ -632,9 +647,145 @@ if ~all(isnan(FeedbackWaitingTime))
         'FontSize', 10);
     ylabel(ValueTIGLMAxes, 'GLM Coeff.')
     title(ValueTIGLMAxes, 'Value-TI');
-    %}
+    
+    %% Time Investment (TI) (only NotBaited Waiting Time) across session 
+    LRTrialTIAxes = axes(AnalysisFigure, 'Position', [0.45    0.36    0.37    0.11]);
+    hold(LRTrialTIAxes, 'on');
+    
+    % Smoothed NotBaited invested time per left/right across session
+    LeftTITrial = NotBaited & ChoiceLeft==1;
+    RightTITrial = NotBaited & ChoiceLeft==0;
+    LeftTI = FeedbackWaitingTime(LeftTITrial);
+    RightTI = FeedbackWaitingTime(RightTITrial);
+    
+    TrialLeftTIPlot = plot(LRTrialTIAxes, idxTrial(LeftTITrial), LeftTI,...
+                           'LineStyle', 'none',...
+                           'Marker', '.',...
+                           'MarkerSize', 4,...
+                           'MarkerEdgeColor', ColourPalette.Left);
+    
+    TrialRightTIPlot = plot(LRTrialTIAxes, idxTrial(RightTITrial), RightTI,...
+                            'LineStyle', 'none',...
+                            'Marker', '.',...
+                            'MarkerSize', 4,...
+                            'MarkerEdgeColor', ColourPalette.Right);
+    
+    LRVevaiometryLegend = legend(LRTrialTIAxes, {'Left', 'Right'},...
+                                 'Box', 'off',...
+                                 'Position', [0.75    0.44    0.05    0.03]);
 
+    set(LRTrialTIAxes,...
+        'TickDir', 'out',...
+        'XLim', BlockSwitchAxes.XLim,...
+        'YLim', [0, max(1, SessionData.SettingsFile.GUI.FeedbackDelayMax * 1.5)],...
+        'YAxisLocation', 'right',...
+        'FontSize', 10);
+    ylabel('Invested Time (s)')
+    % title('Block switching behaviour')
+    
+    %% plot vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
+    LRTIVevaiometricAxes = axes(AnalysisFigure, 'Position', [0.89    0.36    0.10    0.11]);
+    hold(LRTIVevaiometricAxes, 'on')
+    
+    LeftAbsResidual = AbsModelResiduals(LeftTITrial);
+    RightAbsResidual = AbsModelResiduals(RightTITrial);
+    
+    LeftTIScatter = scatter(LRTIVevaiometricAxes, LeftAbsResidual, LeftTI,...
+                            'Marker', '.',...
+                            'MarkerEdgeColor', ColourPalette.Left,...
+                            'SizeData', 18);
+    
+    RightTIScatter = scatter(LRTIVevaiometricAxes, RightAbsResidual, RightTI,...
+                             'Marker', '.',...
+                             'MarkerEdgeColor', ColourPalette.Right,...
+                             'SizeData', 18);
+
+    [LeftLineXData, LeftLineYData] = Binvevaio(LeftAbsResidual, LeftTI, 10);
+    [RightLineXData, RightLineYData] = Binvevaio(RightAbsResidual, RightTI, 10);
+    
+    LeftTIPlot = plot(LRTIVevaiometricAxes, LeftLineXData, LeftLineYData,...
+                      'Color', ColourPalette.Left,...
+                      'LineWidth', 1);       
+    
+    RightTIPlot = plot(LRTIVevaiometricAxes, RightLineXData, RightLineYData,...
+                       'Color', ColourPalette.Right,...
+                       'LineWidth', 1);
+    
+    set(LRTIVevaiometricAxes,...
+        'FontSize', 10,...
+        'XLim', [0 1],...
+        'YLim', [0 SessionData.SettingsFile.GUI.FeedbackDelayMax * 1.5])
+    title(LRTIVevaiometricAxes, 'LRVevaiometric');
+    xlabel(LRTIVevaiometricAxes, 'abs(Residuals)');
 end
+
+%% Move Time (MT) across session 
+LRTrialMTAxes = axes(AnalysisFigure, 'Position', [0.45    0.19    0.37    0.11]);
+hold(LRTrialMTAxes, 'on');
+
+% Smoothed NotBaited invested time per left/right across session
+LeftMT = MoveTime(ChoiceLeft==1);
+RightMT = MoveTime(ChoiceLeft==0);
+
+TrialLeftMTPlot = plot(LRTrialMTAxes, idxTrial(ChoiceLeft==1), LeftMT,...
+                       'LineStyle', 'none',...
+                       'Marker', '.',...
+                       'MarkerSize', 4,...
+                       'MarkerEdgeColor', ColourPalette.Left);
+
+TrialRightMTPlot = plot(LRTrialMTAxes, idxTrial(ChoiceLeft==0), RightMT,...
+                        'LineStyle', 'none',...
+                        'Marker', '.',...
+                        'MarkerSize', 4,...
+                        'MarkerEdgeColor', ColourPalette.Right);
+
+% LRMTVevaiometryLegend = legend(LRTrialMTAxes, {'Left', 'Right'},...
+%                                'Box', 'off',...
+%                                'Position', [0.75    0.35    0.05    0.03]);
+
+set(LRTrialMTAxes,...
+    'TickDir', 'out',...
+    'XLim', BlockSwitchAxes.XLim,...
+    'YLim', [0, 0.5],...
+    'YAxisLocation', 'right',...
+    'FontSize', 10);
+ylabel('Move Time (s)')
+% title('Block switching behaviour')
+
+%% plot vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
+LRMTVevaiometricAxes = axes(AnalysisFigure, 'Position', [0.89    0.19    0.10    0.11]);
+hold(LRMTVevaiometricAxes, 'on')
+
+LeftAbsResidual = AbsModelResiduals(ChoiceLeft==1);
+RightAbsResidual = AbsModelResiduals(ChoiceLeft==0);
+
+LeftMTScatter = scatter(LRMTVevaiometricAxes, LeftAbsResidual, LeftMT,...
+                        'Marker', '.',...
+                        'MarkerEdgeColor', ColourPalette.Left,...
+                        'SizeData', 18);
+
+RightMTScatter = scatter(LRMTVevaiometricAxes, RightAbsResidual, RightMT,...
+                         'Marker', '.',...
+                         'MarkerEdgeColor', ColourPalette.Right,...
+                         'SizeData', 18);
+
+[LeftLineXData, LeftLineYData] = Binvevaio(LeftAbsResidual, LeftMT, 10);
+[RightLineXData, RightLineYData] = Binvevaio(RightAbsResidual, RightMT, 10);
+
+LeftMTPlot = plot(LRMTVevaiometricAxes, LeftLineXData, LeftLineYData,...
+                'Color', ColourPalette.Left,...
+                'LineWidth', 1);       
+
+RightMTPlot = plot(LRMTVevaiometricAxes, RightLineXData, RightLineYData,...
+                 'Color', ColourPalette.Right,...
+                 'LineWidth', 1);
+
+set(LRMTVevaiometricAxes,...
+    'FontSize', 10,...
+    'XLim', [0 1],...
+    'YLim', [0 0.5])
+% title(LRMTVevaiometricAxes, 'LRMTVevaiometric');
+xlabel(LRMTVevaiometricAxes, 'abs(Residuals)');
 
 %% saving
 DataFolder = OttLabDataServerFolderPath;
@@ -645,11 +796,11 @@ RatName = SessionData.Info.Subject;
 % SessionTime = string(datetime(SessionData.Info.SessionStartTime_UTC), 'HHmmSS')';
 % SessionDateTime = strcat(SessionDate, '_', SessionTime);
 DataPath = strcat(DataFolder, RatName, '\bpod_session\', SessionDateTime, '\',...
-                  RatName, '_TwoArmBanditVariant_', SessionDateTime, '_Matching_ChoiceForaing.png');
+                  RatName, '_TwoArmBanditVariant_', SessionDateTime, '_Matching_ChoiceSymmetricQLearning.png');
 exportgraphics(AnalysisFigure, DataPath);
 
 DataPath = strcat(DataFolder, RatName, '\bpod_graph\',...
-                  RatName, '_TwoArmBanditVariant_', SessionDateTime, '_Matching_ChoiceForaing.png');
+                  RatName, '_TwoArmBanditVariant_', SessionDateTime, '_Matching_ChoiceSymmetricQLearning.png');
 exportgraphics(AnalysisFigure, DataPath);
 
 close(AnalysisFigure)

@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_MLE_ChoiceForaging_Visualisation(DataFolderPath)
+function AnalysisFigure = Matching_MS_MLE_ChoiceForagingRewardRate_Visualisation(DataFolderPath)
 % MS = MultiSession
 % B = Bayesian <- Prior using simulation & MCMC (Hamiltonian MC) sampling
 % from prior to get marginal posterior
@@ -32,7 +32,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_MLE_ChoiceForaging';
+AnalysisName = 'Matching_MS_MLE_ChoiceForagingRewardRate';
 
 %% Symmetric Q-Learning with Forgetting and Stickiness model
 Models = {};
@@ -43,7 +43,7 @@ catch
         SessionData = DataHolder{iSession};
         
         try
-            Models{iSession} = Matching_SS_MLE_ChoiceForaging_Model(SessionData);
+            Models{iSession} = Matching_SS_MLE_ChoiceForagingRewardRate_Model(SessionData);
         catch
             Models{iSession} = [];
             disp(strcat('Warning: Problem running model for Session', num2str(iSession)))
@@ -102,12 +102,9 @@ nSessions = length(DataHolder);
 PsychometricAxes = axes(AnalysisFigure, 'Position', [0.01    0.75    0.15    0.19]);
 hold(PsychometricAxes, 'on')
 
+AllPredictedProb = [];
+AllLogOdds = [];
 AllChoiceLeft = [];
-AllChoiceLeftLogOdds = [];
-AllPredictedChoiceLeftProb = [];
-AllExploited = [];
-AllChoiceExploitLogOdds = [];
-AllPredictedChoiceExploitProb = [];
 
 set(PsychometricAxes,...
     'FontSize', 10,...
@@ -115,8 +112,8 @@ set(PsychometricAxes,...
     'YLim', [0, 100],...
     'YAxisLocation', 'right')
 title(PsychometricAxes, 'Psychometric')
-xlabel(PsychometricAxes, 'log(odds_{exploit})')
-ylabel(PsychometricAxes, 'Exploited Choices (%)')
+xlabel(PsychometricAxes, 'log(odds)')
+ylabel(PsychometricAxes, 'Left Choices (%)')
 
 % MLE (maximum likelihood estimation) estimate of ChoiceSymmetricQ
 LearningRateMLEAxes = axes(AnalysisFigure, 'Position', [0.22    0.75    0.02    0.19]);
@@ -158,7 +155,7 @@ set(ForgettingRateMLEAxes,...
 ThresholdMLEAxes = axes(AnalysisFigure, 'Position', [0.37    0.75    0.02    0.19]);
 hold(ThresholdMLEAxes, 'on');
 
-ThresholdMLEs = [];
+ChoiceStickinessMLEs = [];
 
 set(ThresholdMLEAxes,...
     'FontSize', 10,...
@@ -197,10 +194,10 @@ set(VevaiometricSqrtZScoreAxes,...
     'XLim', [-5 5],...
     'YLim', [-2 2],...
     'YAxisLocation', 'right')
-xlabel(VevaiometricSqrtZScoreAxes, 'log(odds_{exploit})');
+xlabel(VevaiometricSqrtZScoreAxes, 'log(odds)');
 ylabel(VevaiometricSqrtZScoreAxes, 'sqrt(Invested Time) (z)');
 
-% Vevaiometric (L/R sorted residuals = abs(exploit - P(exploit))
+% Vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
 LRVevaiometricAxes = axes(AnalysisFigure, 'Position', [0.33    0.48    0.15    0.19]);
 hold(LRVevaiometricAxes, 'on')
 
@@ -215,7 +212,7 @@ set(LRVevaiometricAxes,...
     'YLim', [0 12])
 title(LRVevaiometricAxes, 'LRVevaiometric');
 
-% Vevaiometric z-score (L/R sorted residuals = abs(exploit - P(exploit))
+% Vevaiometric z-score (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
 LRVevaiometricSqrtZScoreAxes = axes(AnalysisFigure, 'Position', [0.33    0.25    0.15    0.19]);
 hold(LRVevaiometricSqrtZScoreAxes, 'on')
 
@@ -271,7 +268,7 @@ set(BlockTransitionAxes,...
     'XLim', [-10 50],...
     'XTick', [0 20 40],...
     'XTickLabel', [1 21 41],...
-    'YLim', [30 70],...
+    'YLim', [0 40],...
     'YAxisLocation', 'right',...
     'FontSize', 10);
 xlabel(BlockTransitionAxes, 'iTrial of new block')
@@ -603,44 +600,37 @@ for iSession = 1:length(DataHolder)
                     ThresholdMLEs(iSession), ForgettingRateMLEs(iSession)];
     
     [NegLogDataLikelihood, Values] = ChoiceForaging(MLEEstimates, nTrials, ChoiceLeft, Rewarded);
+    LogOdds = Values.ChoiceLeftLogOdds;
     
-    ChoiceExploitLogOdds = Values.ChoiceExploitLogOdds;
-    PredictedChoiceExploitProb = 1./ (1 + exp(-ChoiceExploitLogOdds));
-    
-    ChoiceLeftLogOdds = Values.ChoiceLeftLogOdds;
-    PredictedChoiceLeftProb = 1 ./ (1 + exp(-ChoiceLeftLogOdds));
+    PredictedLeftChoiceProb = 1 ./ (1 + exp(-LogOdds));
 
-    PredictedChoice = double(PredictedChoiceLeftProb>=0.5);
+    PredictedChoice = double(PredictedLeftChoiceProb>=0.5);
     PredictedChoice(isnan(ChoiceLeft)) = nan;
     
-    Exploited = Values.Exploited;
-    Explore = Values.Exploited == 0;
-    Exploit = Values.Exploited == 1;
+    Explore = abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5;
+    Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5;
     
-    AbsModelResiduals = abs(Values.Exploited - PredictedChoiceExploitProb);
-    
+    AbsModelResiduals = abs(ChoiceLeft - PredictedLeftChoiceProb);
+
+    AllPredictedProb = [AllPredictedProb, PredictedLeftChoiceProb];
+    AllLogOdds = [AllLogOdds, LogOdds];
     AllChoiceLeft = [AllChoiceLeft, ChoiceLeft];
-    AllChoiceLeftLogOdds = [AllChoiceLeftLogOdds, ChoiceLeftLogOdds];
-    AllPredictedChoiceLeftProb = [AllPredictedChoiceLeftProb, PredictedChoiceLeftProb];
-    AllExploited = [AllExploited, Exploited];
-    AllPredictedChoiceExploitProb = [AllPredictedChoiceExploitProb, PredictedChoiceExploitProb];
-    AllChoiceExploitLogOdds = [AllChoiceExploitLogOdds, ChoiceExploitLogOdds];
-    
+
     % Psychometric
     ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
-    ValidChoiceExploitLogOdds = ChoiceExploitLogOdds(ValidTrial);
-    ValidExploited = Exploited(ValidTrial)';
+    ValidLogOdds = LogOdds(ValidTrial);
+    ValidChoice = ChoiceLeft(ValidTrial)';
     
-    Bin = linspace(-max(abs(ValidChoiceExploitLogOdds)), max(abs(ValidChoiceExploitLogOdds)), 11);
-    [XData, YData, Error] = BinData(ValidChoiceExploitLogOdds, ValidExploited, Bin);
+    Bin = linspace(-5, 5, 11);
+    [XData, YData, Error] = BinData(ValidLogOdds, ValidChoice, Bin);
     ValidData = ~isnan(XData) & ~isnan(YData) & ~isnan(Error);
     
-    ChoiceExploitPsychometricLine{iSession} = line(PsychometricAxes,...
-                                                   'xdata', XData(ValidData),...
-                                                   'ydata', YData(ValidData) * 100,...
-                                                   'LineStyle', '-',...
-                                                   'LineWidth', 0.5,...
-                                                   'Color', ColourPalette.Session);
+    ChoicePsychometricLine{iSession} = line(PsychometricAxes,...
+                                            'xdata', XData(ValidData),...
+                                            'ydata', YData(ValidData) * 100,...
+                                            'LineStyle', '-',...
+                                            'LineWidth', 0.5,...
+                                            'Color', ColourPalette.Session);
     
     % Vevaiometric
     NotBaited = any(~Baited .* ChoiceLeftRight, 1) & (IncorrectChoice ~= 1);
@@ -650,8 +640,8 @@ for iSession = 1:length(DataHolder)
     ExploringTI = FeedbackWaitingTime(ExploringTITrial);
     ExploitingTI = FeedbackWaitingTime(ExploitingTITrial);
     
-    ExploringLogOdds = ChoiceExploitLogOdds(ExploringTITrial);
-    ExploitingLogOdds = ChoiceExploitLogOdds(ExploitingTITrial);
+    ExploringLogOdds = LogOdds(ExploringTITrial);
+    ExploitingLogOdds = LogOdds(ExploitingTITrial);
     
     AllExploringTI = [AllExploringTI, ExploringTI];
     AllExploitingTI = [AllExploitingTI, ExploitingTI];
@@ -661,12 +651,12 @@ for iSession = 1:length(DataHolder)
     
     % ExploringTrialTIScatter{iSession} = scatter(VevaiometricAxes, ExploringLogOdds, ExploringTI,...
     %                                             'Marker', '.',...
-    %                                             'MarkerEdgeColor', ColourPalette.Explore,...
+    %                                             'MarkerEdgeColor', carrot,...
     %                                             'SizeData', 1);
     % 
     % ExploitingTrialTIScatter{iSession} = scatter(VevaiometricAxes, ExploitingLogOdds, ExploitingTI,...
     %                                              'Marker', '.',...
-    %                                              'MarkerEdgeColor', ColourPalette.Exploit,...
+    %                                              'MarkerEdgeColor', violet,...
     %                                              'SizeData', 1);
     
     [ExploreLineXData, ExploreLineYData] = Binvevaio(ExploringLogOdds, ExploringTI, 10);
@@ -698,6 +688,7 @@ for iSession = 1:length(DataHolder)
     AllLeftAbsResidual = [AllLeftAbsResidual, LeftAbsResidual];
     AllRightAbsResidual = [AllRightAbsResidual, RightAbsResidual];
     
+    %{
     [LeftTILineXData, LeftTILineYData] = Binvevaio(LeftAbsResidual, LeftTI, 10);
     [RightTILineXData, RightTILineYData] = Binvevaio(RightAbsResidual, RightTI, 10);
         
@@ -705,13 +696,14 @@ for iSession = 1:length(DataHolder)
                                 'XData', LeftTILineXData,...
                                 'YData', LeftTILineYData,...
                                 'LineStyle', '-',...
-                                'Color', 1 - ColourPalette.Session ./ 2);
+                                'Color', 1-SessionColor ./ 2);
     
     RightTILine{iSession} = line(LRVevaiometricAxes,...
                                  'XData', RightTILineXData,...
                                  'YData', RightTILineYData,...
                                  'LineStyle', '-',...
-                                 'Color', ColourPalette.Session);
+                                 'Color', SessionColor);
+    %}
     
     % Vevaiometric z-score (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
     [LeftTISqrtZScore, LeftTIMu, LeftTISigma] = zscore(sqrt(LeftTI));
@@ -720,20 +712,22 @@ for iSession = 1:length(DataHolder)
     AllLeftTISqrtZScore = [AllLeftTISqrtZScore, LeftTISqrtZScore];
     AllRightTISqrtZScore = [AllRightTISqrtZScore, RightTISqrtZScore];
 
-    [LeftTIZScoreLineXData, LeftTIZScoreLineYData] = Binvevaio(LeftAbsResidual, LeftTISqrtZScore, 10);
-    [RightTIZScoreLineXData, RightTIZScoreLineYData] = Binvevaio(RightAbsResidual, RightTISqrtZScore, 10);
+    %{
+    [LeftTIZScoreLineXData, LeftTIZScoreLineYData] = Binvevaio(LeftAbsResidual, LeftTIZScore, 10);
+    [RightTIZScoreLineXData, RightTIZScoreLineYData] = Binvevaio(RightAbsResidual, RightTIZScore, 10);
     
-    LeftTIZScoreLine{iSession} = line(LRVevaiometricSqrtZScoreAxes,...
+    LeftTIZScoreLine{iSession} = line(LRVevaiometricZScoreAxes,...
                                       'XData', LeftTIZScoreLineXData,...
                                       'YData', LeftTIZScoreLineYData,...
                                       'LineStyle', '-',...
-                                      'Color', 1 - ColourPalette.Session ./ 2);
+                                      'Color', 1-SessionColor ./ 2);
     
-    RightTIZScoreLine{iSession} = line(LRVevaiometricSqrtZScoreAxes,...
+    RightTIZScoreLine{iSession} = line(LRVevaiometricZScoreAxes,...
                                        'XData', RightTIZScoreLineXData,...
                                        'YData', RightTIZScoreLineYData,...
                                        'LineStyle', '-',...
-                                       'Color', ColourPalette.Session);
+                                       'Color', SessionColor);
+    %}
     
     % Vevaiometric z-score
     % have to calculate last as it needs the z-score info from
@@ -762,12 +756,12 @@ for iSession = 1:length(DataHolder)
 
     % ExploringTrialTIZScoreScatter{iSession} = scatter(VevaiometricZScoreAxes, ExploringLogOdds, ExploringTIZScore,...
     %                                                   'Marker', '.',...
-    %                                                   'MarkerEdgeColor', ColourPalette.Explore,...
+    %                                                   'MarkerEdgeColor', carrot,...
     %                                                   'SizeData', 1);
     % 
     % ExploitingTrialTIZScoreScatter{iSession} = scatter(VevaiometricZScoreAxes, ExploitingLogOdds, ExploitingTIZScore,...
     %                                                    'Marker', '.',...
-    %                                                    'MarkerEdgeColor', ColourPalette.Exploit,...
+    %                                                    'MarkerEdgeColor', violet,...
     %                                                    'SizeData', 1);
 
     [ExploreSqrtZScoreLineXData, ExploreSqrtZScoreLineYData] = Binvevaio(ExploringLogOdds, ExploringTISqrtZScore, 10);
@@ -800,14 +794,14 @@ for iSession = 1:length(DataHolder)
     
     % Block 1 transition (1st -> 2nd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
-    Block1To2Explore(iSession, :) = 1 - Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block1To2Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
     Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     Block1To2RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     
     % Block 2 transition (2nd -> 3rd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block2To3Explore(iSession, :) = 1 - Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
         Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
         Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
@@ -815,7 +809,7 @@ for iSession = 1:length(DataHolder)
     % Block 3 transition (3rd -> 4th)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block3To4Explore(iSession, :) = 1 - Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block3To4Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
         Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
         Block3To4RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
@@ -823,7 +817,7 @@ for iSession = 1:length(DataHolder)
     % Block 4 transition (4th -> 5th)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block4To5Explore(iSession, :) = 1 - Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block4To5Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
         Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
         Block4To5RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
@@ -840,8 +834,8 @@ for iSession = 1:length(DataHolder)
     ExploringMT = MoveTime(Explore & ~isnan(ChoiceLeft));
     ExploitingMT = MoveTime(Exploit & ~isnan(ChoiceLeft));
     
-    ExploringMTLogOdds = ChoiceExploitLogOdds(Explore & ~isnan(ChoiceLeft));
-    ExploitingMTLogOdds = ChoiceExploitLogOdds(Exploit & ~isnan(ChoiceLeft));
+    ExploringMTLogOdds = LogOdds(Explore & ~isnan(ChoiceLeft));
+    ExploitingMTLogOdds = LogOdds(Exploit & ~isnan(ChoiceLeft));
     
     AllExploringMT = [AllExploringMT, ExploringMT];
     AllExploitingMT = [AllExploitingMT, ExploitingMT];
@@ -969,20 +963,20 @@ end
 
 %% Average across sessions
 % Psychometric
-ValidTrial = ~isnan(AllExploited); % and EarlyWithdrawal is always 0
-ValidChoiceExploitLogOdds = AllChoiceExploitLogOdds(ValidTrial);
-ValidExploited = AllExploited(ValidTrial)';
+ValidTrial = ~isnan(AllChoiceLeft); % and EarlyWithdrawal is always 0
+ValidLogOdds = AllLogOdds(ValidTrial);
+ValidChoice = AllChoiceLeft(ValidTrial)';
 
-Bin = linspace(-max(abs(ValidChoiceExploitLogOdds)), max(abs(ValidChoiceExploitLogOdds)), 11);
-[XData, YData, Error] = BinData(ValidChoiceExploitLogOdds, ValidExploited, Bin);
+Bin = linspace(-5, 5, 11);
+[XData, YData, Error] = BinData(ValidLogOdds, ValidChoice, Bin);
 ValidData = ~isnan(XData) & ~isnan(YData) & ~isnan(Error);
 
-ChoiceExploitPsychometricLine{iSession + 1} = line(PsychometricAxes,...
-                                                   'xdata', XData(ValidData),...
-                                                   'ydata', YData(ValidData) * 100,...
-                                                   'LineStyle', '-',...
-                                                   'LineWidth', 0.5,...
-                                                   'Color', ColourPalette.Pooled);
+ChoicePsychometricLine{iSession + 1} = line(PsychometricAxes,...
+                                            'xdata', XData(ValidData),...
+                                            'ydata', YData(ValidData) * 100,...
+                                            'LineStyle', '-',...
+                                            'LineWidth', 0.5,...
+                                            'Color', ColourPalette.Pooled);
 
 PsychometricGLM = fitglm(XData, YData, 'Distribution', 'binomial');
 XRange = XData(end) - XData(1);
@@ -1089,21 +1083,20 @@ ExploitLine{iSession + 1} = line(VevaiometricAxes,...
 [ExploitSqrtZScoreLineXData, ExploitSqrtZScoreLineYData] = Binvevaio(AllExploitingLogOdds, AllExploitingTISqrtZScore, 10);
 
 ExploreSqrtZScoreLine{iSession + 1} = line(VevaiometricSqrtZScoreAxes,...
-                                           'XData', ExploreSqrtZScoreLineXData,...
-                                           'YData', ExploreSqrtZScoreLineYData,...
-                                           'LineStyle', '-',...
-                                           'LineWidth', 2,...
-                                           'Color', ColourPalette.Explore);
+                                       'XData', ExploreSqrtZScoreLineXData,...
+                                       'YData', ExploreSqrtZScoreLineYData,...
+                                       'LineStyle', '-',...
+                                       'LineWidth', 2,...
+                                       'Color', ColourPalette.Explore);
 
 ExploitSqrtZScoreLine{iSession + 1} = line(VevaiometricSqrtZScoreAxes,...
-                                           'XData', ExploitSqrtZScoreLineXData,...
-                                           'YData', ExploitSqrtZScoreLineYData,...
-                                           'LineStyle', '-',...
-                                           'LineWidth', 2,...
-                                           'Color', ColourPalette.Exploit);
+                                       'XData', ExploitSqrtZScoreLineXData,...
+                                       'YData', ExploitSqrtZScoreLineYData,...
+                                       'LineStyle', '-',...
+                                       'LineWidth', 2,...
+                                       'Color', ColourPalette.Exploit);
 
 % Vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
-%{
 LeftTIScatter = scatter(LRVevaiometricAxes,...
                         AllLeftAbsResidual,...
                         AllLeftTI);
@@ -1119,7 +1112,7 @@ set(RightTIScatter,...
     'SizeData', 1,...
     'Marker', '.',...
     'CData', ColourPalette.Right);
-%}
+
 [LeftTILineXData, LeftTILineYData] = Binvevaio(AllLeftAbsResidual, AllLeftTI, 10);
 [RightTILineXData, RightTILineYData] = Binvevaio(AllRightAbsResidual, AllRightTI, 10);
 
@@ -1155,7 +1148,6 @@ RightTIStatsText = text(LRVevaiometricAxes, 0.3, 10,...
                         'Color', ColourPalette.Right);
 
 % Vevaiometric z-score (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
-%{
 LeftTIZScoreScatter = scatter(LRVevaiometricSqrtZScoreAxes,...
                               AllLeftAbsResidual,...
                               AllLeftTISqrtZScore);
@@ -1171,7 +1163,7 @@ set(RightTIZScoreScatter,...
     'SizeData', 1,...
     'Marker', '.',...
     'CData', ColourPalette.Right);
-%}
+
 [LeftTISqrtZScoreLineXData, LeftTISqrtZScoreLineYData] = Binvevaio(AllLeftAbsResidual, AllLeftTISqrtZScore, 10);
 [RightTISqrtZScoreLineXData, RightTISqrtZScoreLineYData] = Binvevaio(AllRightAbsResidual, AllRightTISqrtZScore, 10);
 
