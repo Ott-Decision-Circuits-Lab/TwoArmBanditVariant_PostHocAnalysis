@@ -6,9 +6,10 @@ TrialTimeDuration = [TrialTimeDuration, 20]; % add a dummy timeDuration
 
 LearningRate = Parameters(1); % alpha
 InverseTemperature = Parameters(2); % beta
-BackgroundRewardRateWeight = Parameters(3); % theta
+BackgroundRewardRateWeight = Parameters(3); % phi
 ForgettingRate = Parameters(4); % gamma_V
 BackgroundRewardRateDecayConstant = Parameters(5); % tau
+BasalBackgroundRewardRate = Parameters(6); % theta
 
 % Foraging-value initialisation
 ExploitingValue = BackgroundRewardRateWeight;
@@ -18,7 +19,7 @@ BackgroundRewardRate = 0;
 
 % Likelihood iteration
 for iTrial = 1:nTrials
-    ExploitingLogOdds = InverseTemperature * (ExploitingValue(iTrial) - BackgroundRewardRateWeight * BackgroundRewardRate(iTrial));
+    ExploitingLogOdds = InverseTemperature * (ExploitingValue(iTrial) - BackgroundRewardRateWeight * (BackgroundRewardRate(iTrial) + BasalBackgroundRewardRate));
 
     ExploitingValue(iTrial + 1) = (1 - ForgettingRate) * ExploitingValue(iTrial);
     if Rewarded(iTrial) == 1

@@ -236,9 +236,10 @@ end
 % extract parameters
 LearningRate = EstimatedParameters(1); % alpha
 InverseTemperature = EstimatedParameters(2); % beta
-BackgroundRewardRateWeight = EstimatedParameters(3); % theta
+BackgroundRewardRateWeight = EstimatedParameters(3); % phi
 ForgettingRate = EstimatedParameters(4); % gamma
 BackgroundRewardRateDecayConstant = EstimatedParameters(5); % tau
+BasalBackgroundRewardRate = EstimatedParameters(6); % theta
 
 % make prediction from Model (i.e. estimated parameters)
 [~, Values] = ChoiceForagingRewardRate(EstimatedParameters, nTrials, ChoiceLeft, Rewarded, TrialTimeDuration);

@@ -665,11 +665,11 @@ for iSession = 1:length(DataHolder)
     AllChoiceLeft = [AllChoiceLeft, ChoiceLeft];
 
     % Psychometric
-    ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
-    ValidLogOdds = ChoiceLeftLogOdds(ValidTrial);
-    ValidChoice = ChoiceLeft(ValidTrial)';
+    ValidTrial = ~isnan(Exploited); % and EarlyWithdrawal is always 0
+    ValidLogOdds = ChoiceExploitLogOdds(ValidTrial);
+    ValidChoice = Exploited(ValidTrial)';
     
-    Bin = linspace(-5, 5, 11);
+    Bin = linspace(-max(abs(ValidLogOdds)), max(abs(ValidLogOdds)), 11);
     [XData, YData, Error] = BinData(ValidLogOdds, ValidChoice, Bin);
     ValidData = ~isnan(XData) & ~isnan(YData) & ~isnan(Error);
     
@@ -694,8 +694,8 @@ for iSession = 1:length(DataHolder)
     ExploringTI = FeedbackWaitingTime(ExploringTITrial);
     ExploitingTI = FeedbackWaitingTime(ExploitingTITrial);
     
-    ExploringLogOdds = ChoiceLeftLogOdds(ExploringTITrial);
-    ExploitingLogOdds = ChoiceLeftLogOdds(ExploitingTITrial);
+    ExploringLogOdds = ChoiceExploitLogOdds(ExploringTITrial);
+    ExploitingLogOdds = ChoiceExploitLogOdds(ExploitingTITrial);
     
     AllExploringTI = [AllExploringTI, ExploringTI];
     AllExploitingTI = [AllExploitingTI, ExploitingTI];
@@ -848,14 +848,14 @@ for iSession = 1:length(DataHolder)
     
     % Block 1 transition (1st -> 2nd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
-    Block1To2Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+    Block1To2Explore(iSession, :) = Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) == 0;
     Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     Block1To2RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
 
     % Block 2 transition (2nd -> 3rd)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block2To3Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block2To3Explore(iSession, :) = Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) == 0;
         Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
         Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
@@ -863,7 +863,7 @@ for iSession = 1:length(DataHolder)
     % Block 3 transition (3rd -> 4th)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block3To4Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block3To4Explore(iSession, :) = Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) == 0;
         Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
         Block3To4RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
@@ -871,7 +871,7 @@ for iSession = 1:length(DataHolder)
     % Block 4 transition (4th -> 5th)
     BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
     if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block4To5Explore(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
+        Block4To5Explore(iSession, :) = Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) == 0;
         Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
         Block4To5RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
@@ -888,8 +888,8 @@ for iSession = 1:length(DataHolder)
     ExploringMT = MoveTime(Explore & ~isnan(ChoiceLeft));
     ExploitingMT = MoveTime(Exploit & ~isnan(ChoiceLeft));
     
-    ExploringMTLogOdds = ChoiceLeftLogOdds(Explore & ~isnan(ChoiceLeft));
-    ExploitingMTLogOdds = ChoiceLeftLogOdds(Exploit & ~isnan(ChoiceLeft));
+    ExploringMTLogOdds = ChoiceExploitLogOdds(Explore & ~isnan(ChoiceLeft));
+    ExploitingMTLogOdds = ChoiceExploitLogOdds(Exploit & ~isnan(ChoiceLeft));
     
     AllExploringMT = [AllExploringMT, ExploringMT];
     AllExploitingMT = [AllExploitingMT, ExploitingMT];
@@ -1025,9 +1025,9 @@ end
 
 %% Average across sessions
 % Psychometric
-ValidTrial = ~isnan(AllChoiceLeft); % and EarlyWithdrawal is always 0
-ValidLogOdds = AllChoiceLeftLogOdds(ValidTrial);
-ValidChoice = AllChoiceLeft(ValidTrial)';
+ValidTrial = ~isnan(AllExploited); % and EarlyWithdrawal is always 0
+ValidLogOdds = AllChoiceExploitLogOdds(ValidTrial);
+ValidChoice = AllExploited(ValidTrial)';
 
 Bin = linspace(-5, 5, 11);
 [XData, YData, Error] = BinData(ValidLogOdds, ValidChoice, Bin);

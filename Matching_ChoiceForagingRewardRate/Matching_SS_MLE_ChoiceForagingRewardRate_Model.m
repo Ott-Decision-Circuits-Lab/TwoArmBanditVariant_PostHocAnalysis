@@ -7,8 +7,8 @@ TrialStartTimestamp = SessionData.TrialStartTimestamp(:, 1:nTrials) - SessionDat
 TrialTimeDuration = [0 diff(TrialStartTimestamp)];
 
 % Parametric estimation
-LowerBound = [0.00, 2, 0.00, 0.0, 0];
-UpperBound = [1.00, 10, 1, 1, 1];
+LowerBound = [0.00, 2, 0.00, 0.0, 0, -5];
+UpperBound = [1.00, 10, 1, 1, 1, 5];
 
 % Free parameters
 CalculateMLE = @(Parameters) ChoiceForagingRewardRate(Parameters, nTrials, ChoiceLeft, Rewarded, TrialTimeDuration);

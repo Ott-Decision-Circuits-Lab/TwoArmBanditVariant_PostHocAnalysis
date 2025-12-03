@@ -52,7 +52,7 @@ if nargin < 2
 
     Prior.BurnIn = 200;
     Prior.nSample = 1000;
-    Prior.nChain = 8;
+    Prior.nChain = 12;
 
 elseif fieldnames(Prior)
     disp('Error: Unknown input format. No further analysis can be performed.')
@@ -126,12 +126,8 @@ nSessions = length(DataHolder);
 PsychometricAxes = axes(AnalysisFigure, 'Position', [0.01    0.75    0.15    0.19]);
 hold(PsychometricAxes, 'on')
 
-AllPredictedChoiceExploitProb = [];
-AllChoiceExploitLogOdds = [];
-AllExploited = [];
-
-AllPredictedChoiceLeftProb = [];
-AllChoiceLeftLogOdds = [];
+AllPredictedProb = [];
+AllLogOdds = [];
 AllChoiceLeft = [];
 
 set(PsychometricAxes,...
@@ -140,11 +136,10 @@ set(PsychometricAxes,...
     'YLim', [0, 100],...
     'YAxisLocation', 'right')
 title(PsychometricAxes, 'Psychometric')
-xlabel(PsychometricAxes, 'log(odds_{exploit})')
+xlabel(PsychometricAxes, 'log(odds)')
 ylabel(PsychometricAxes, 'Left Choices (%)')
 
-% Posterior mode (i.e. MAP, maximum a posteriori) estimate of
-% ChoiceForaging
+% Posterior mode (i.e. MAP, maximum a posteriori) estimate of ChoiceSymmetricQ
 LearningRateMAPAxes = axes(AnalysisFigure, 'Position', [0.22    0.75    0.02    0.19]);
 hold(LearningRateMAPAxes, 'on');
 
@@ -224,7 +219,7 @@ set(VevaiometricSqrtZScoreAxes,...
     'XLim', [-5 5],...
     'YLim', [-2 2],...
     'YAxisLocation', 'right')
-xlabel(VevaiometricSqrtZScoreAxes, 'log(odds_{exploit})');
+xlabel(VevaiometricSqrtZScoreAxes, 'log(odds)');
 ylabel(VevaiometricSqrtZScoreAxes, 'sqrt(Invested Time) (z-score)');
 
 % Vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
@@ -394,10 +389,10 @@ set(VevaiometricMTLogZScoreAxes,...
     'XLim', [-5, 5],...
     'YLim', [-4, 4],...
     'YAxisLocation', 'right')
-xlabel(VevaiometricMTLogZScoreAxes, 'log(odds_{exploit})');
+xlabel(VevaiometricMTLogZScoreAxes, 'log(odds)');
 ylabel(VevaiometricMTLogZScoreAxes, 'log(Move Time) (z-score)');
 
-% Vevaiometric (L/R sorted residuals = abs(Exploited- P(Exploit))
+% Vevaiometric (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
 LRVevaiometricMTAxes = axes(AnalysisFigure, 'Position', [0.83    0.48    0.15    0.19]);
 hold(LRVevaiometricMTAxes, 'on')
 
@@ -412,7 +407,7 @@ set(LRVevaiometricMTAxes,...
     'YLim', [0 0.5])
 title(LRVevaiometricMTAxes, 'LRVevaiometric MT');
 
-% Vevaiometric MT Log z-score (L/R sorted residuals = abs(Exploited- P(Exploit))
+% Vevaiometric MT Log z-score (L/R sorted residuals = abs(ChoiceLeft - P({ChoiceLeft}^))
 % use log normal
 % NOT USE AS NOT NORMAL DISTRIBUTION
 LRVevaiometricMTLogZScoreAxes = axes(AnalysisFigure, 'Position', [0.83    0.25    0.15    0.19]);
@@ -641,32 +636,25 @@ for iSession = 1:length(DataHolder)
                     ThresholdMAPs(iSession)];
     
     [NegLogDataLikelihood, Values] = ChoiceForaging(MAPEstimates, nTrials, ChoiceLeft, Rewarded);
-    Exploited = Values.Exploited;
-    ChoiceExploitLogOdds = Values.ChoiceExploitLogOdds;
-    PredictedChoiceExploitProb = 1 ./ (1 + exp(-ChoiceExploitLogOdds));
+    LogOdds = Values.ChoiceLeftLogOdds;
+    
+    PredictedLeftChoiceProb = 1 ./ (1 + exp(-LogOdds));
 
-    ChoiceLeftLogOdds = Values.ChoiceLeftLogOdds;
-    PredictedChoiceLeftProb = 1 ./ (1 + exp(-ChoiceLeftLogOdds));
-
-    PredictedChoice = double(PredictedChoiceLeftProb>=0.5);
+    PredictedChoice = double(PredictedLeftChoiceProb>=0.5);
     PredictedChoice(isnan(ChoiceLeft)) = nan;
     
-    Explore = Exploited == 0;
-    Exploit = Exploited == 1;
+    Explore = abs(ChoiceLeft - PredictedLeftChoiceProb) >= 0.5;
+    Exploit = abs(ChoiceLeft - PredictedLeftChoiceProb) < 0.5;
     
-    AbsModelResiduals = abs(Exploited - PredictedChoiceExploitProb);
+    AbsModelResiduals = abs(ChoiceLeft - PredictedLeftChoiceProb);
 
-    AllPredictedChoiceExploitProb = [AllPredictedChoiceExploitProb, PredictedChoiceExploitProb];
-    AllChoiceExploitLogOdds = [AllChoiceExploitLogOdds, ChoiceExploitLogOdds];
-    AllExploited = [AllExploited, Exploited];
-
-    AllPredictedChoiceLeftProb = [AllPredictedChoiceLeftProb, PredictedChoiceLeftProb];
-    AllChoiceLeftLogOdds = [AllChoiceLeftLogOdds, ChoiceLeftLogOdds];
+    AllPredictedProb = [AllPredictedProb, PredictedLeftChoiceProb];
+    AllLogOdds = [AllLogOdds, LogOdds];
     AllChoiceLeft = [AllChoiceLeft, ChoiceLeft];
 
     % Psychometric
     ValidTrial = ~isnan(ChoiceLeft); % and EarlyWithdrawal is always 0
-    ValidLogOdds = ChoiceLeftLogOdds(ValidTrial);
+    ValidLogOdds = LogOdds(ValidTrial);
     ValidChoice = ChoiceLeft(ValidTrial)';
     
     Bin = linspace(-5, 5, 11);
@@ -694,8 +682,8 @@ for iSession = 1:length(DataHolder)
     ExploringTI = FeedbackWaitingTime(ExploringTITrial);
     ExploitingTI = FeedbackWaitingTime(ExploitingTITrial);
     
-    ExploringLogOdds = ChoiceLeftLogOdds(ExploringTITrial);
-    ExploitingLogOdds = ChoiceLeftLogOdds(ExploitingTITrial);
+    ExploringLogOdds = LogOdds(ExploringTITrial);
+    ExploitingLogOdds = LogOdds(ExploitingTITrial);
     
     AllExploringTI = [AllExploringTI, ExploringTI];
     AllExploitingTI = [AllExploitingTI, ExploitingTI];
@@ -888,8 +876,8 @@ for iSession = 1:length(DataHolder)
     ExploringMT = MoveTime(Explore & ~isnan(ChoiceLeft));
     ExploitingMT = MoveTime(Exploit & ~isnan(ChoiceLeft));
     
-    ExploringMTLogOdds = ChoiceLeftLogOdds(Explore & ~isnan(ChoiceLeft));
-    ExploitingMTLogOdds = ChoiceLeftLogOdds(Exploit & ~isnan(ChoiceLeft));
+    ExploringMTLogOdds = LogOdds(Explore & ~isnan(ChoiceLeft));
+    ExploitingMTLogOdds = LogOdds(Exploit & ~isnan(ChoiceLeft));
     
     AllExploringMT = [AllExploringMT, ExploringMT];
     AllExploitingMT = [AllExploitingMT, ExploitingMT];
@@ -980,7 +968,7 @@ for iSession = 1:length(DataHolder)
                                             'YData', ExploitLogZScoreLineYData,...
                                             'LineStyle', '-',...
                                             'Color', ColourPalette.Session);
-    %{
+
     % Value-TI GLM Coeff. & sqrt(TI) (z)
     LeftRightValue = [Values.LeftValue; Values.RightValue];
     LeftRightMemory = [Values.ChoiceMemory; -Values.ChoiceMemory];
@@ -1020,13 +1008,12 @@ for iSession = 1:length(DataHolder)
     
     AllTIChosenLogOdds = [AllTIChosenLogOdds, ChosenLogOdds(NotBaited)];
     AllTITotalValue = [AllTITotalValue, TotalValue(NotBaited)];
-    %}
 end
 
 %% Average across sessions
 % Psychometric
 ValidTrial = ~isnan(AllChoiceLeft); % and EarlyWithdrawal is always 0
-ValidLogOdds = AllChoiceLeftLogOdds(ValidTrial);
+ValidLogOdds = AllLogOdds(ValidTrial);
 ValidChoice = AllChoiceLeft(ValidTrial)';
 
 Bin = linspace(-5, 5, 11);
@@ -1106,16 +1093,50 @@ set(ForgettingRateBoxchart,...
     'LineWidth', 0.2);
 
 XData = zeros(size(ThresholdMAPs));
-ThresholdSwarmchart = swarmchart(ThresholdMAPAxes,...
-                                 XData,...
-                                 ThresholdMAPs,...
-                                 'Marker', '.',...
-                                 'MarkerEdgeColor', ColourPalette.Session,...
-                                 'XJitter', 'density',...
-                                 'XJitterWidth', 1);
+ChoiceStickinessSwarmchart = swarmchart(ThresholdMAPAxes,...
+                                        XData,...
+                                        ThresholdMAPs,...
+                                        'Marker', '.',...
+                                        'MarkerEdgeColor', ColourPalette.Session,...
+                                        'XJitter', 'density',...
+                                        'XJitterWidth', 1);
 
-ThresholdBoxchart = boxchart(ThresholdMAPAxes, XData, ThresholdMAPs);
-set(ThresholdBoxchart,...
+ChoiceStickinessBoxchart = boxchart(ThresholdMAPAxes, XData, ThresholdMAPs);
+set(ChoiceStickinessBoxchart,...
+    'BoxWidth', 0.2,...
+    'BoxFaceColor', 'k',...
+    'BoxFaceAlpha', 0,...
+    'MarkerStyle', 'none',...
+    'LineWidth', 0.2);
+
+XData = zeros(size(ChoiceForgettingRateMAPs));
+ChoiceForgettingRateSwarmchart = swarmchart(ChoiceForgettingRateMAPAxes,...
+                                            XData,...
+                                            ChoiceForgettingRateMAPs,...
+                                            'Marker', '.',...
+                                            'MarkerEdgeColor', ColourPalette.Session,...
+                                            'XJitter', 'density',...
+                                            'XJitterWidth', 1);
+
+ChoiceForgettingRateBoxchart = boxchart(ChoiceForgettingRateMAPAxes, XData, ChoiceForgettingRateMAPs);
+set(ChoiceForgettingRateBoxchart,...
+    'BoxWidth', 0.2,...
+    'BoxFaceColor', 'k',...
+    'BoxFaceAlpha', 0,...
+    'MarkerStyle', 'none',...
+    'LineWidth', 0.2);
+
+XData = zeros(size(BiasMAPs));
+BiasSwarmchart = swarmchart(BiasMAPAxes,...
+                            XData,...
+                            BiasMAPs,...
+                            'Marker', '.',...
+                            'MarkerEdgeColor', ColourPalette.Session,...
+                            'XJitter', 'density',...
+                            'XJitterWidth', 1);
+
+BiasBoxchart = boxchart(BiasMAPAxes, XData, BiasMAPs);
+set(BiasBoxchart,...
     'BoxWidth', 0.2,...
     'BoxFaceColor', 'k',...
     'BoxFaceAlpha', 0,...
@@ -1862,7 +1883,7 @@ set(RightExploringMTLogZScoreBoxchart,...
     'BoxFaceAlpha', 0,...
     'MarkerStyle', 'none',...
     'LineWidth', 0.2);
-%{
+
 % Value-TI GLM Coeff. & -sqrt(TI) (z) GLM Coeff.
 X = repmat(1:4, nSessions, 1);
 X = reshape(X, 1, []);
@@ -1982,7 +2003,7 @@ CLOTVTISqrtZScoreSignificantLine = line(CLOTVTISqrtZScoreGLMAxes,...
                                         'LineStyle', 'none',...
                                         'Color', 'k',...
                                         'Marker', '*');
-%}
+
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 DataPath = strcat(DataFolderPath, '\', FigureTitle, '.png');
