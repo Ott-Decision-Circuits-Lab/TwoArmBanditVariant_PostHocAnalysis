@@ -451,7 +451,7 @@ set(MTLogZScoreDistributionAxes,...
     'FontSize', 10);
 xlabel(MTLogZScoreDistributionAxes, '')
 title(MTLogZScoreDistributionAxes, '');
-
+%{
 % Value-TI GLM Coeff.
 ValueTIGLMAxes = axes(AnalysisFigure, 'Position', [0.56, 0.78, 0.10, 0.16]);
 hold(ValueTIGLMAxes, 'on')
@@ -486,7 +486,7 @@ set(ValueTISqrtZScoreGLMAxes,...
     'FontSize', 10);
 % ylabel(ValueTISqrtZScoreGLMAxes, 'GLM Coeff.')
 title(ValueTISqrtZScoreGLMAxes, 'Value-sqrt(TI) (z)');
-
+%}
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 %% Plotting
@@ -925,7 +925,7 @@ for iSession = 1:length(DataHolder)
                                             'YData', ExploitLogZScoreLineYData,...
                                             'LineStyle', '-',...
                                             'Color', ColourPalette.Session);
-    
+    %{
     % Value-TI GLM Coeff. & sqrt(TI) (z)
     ChosenLogOdds = LogOdds .* ChoiceLeft - LogOdds .* (1 - ChoiceLeft);
     FeedbackWaitingTimeSqrtZScore = sum(((sqrt([FeedbackWaitingTime; FeedbackWaitingTime]) - [LeftTIMu; RightTIMu]) ./ [LeftTISigma; RightTISigma]) .* ChoiceLeftRight, 1);
@@ -935,7 +935,7 @@ for iSession = 1:length(DataHolder)
     
     AllTIRewardRate = [AllTIRewardRate, RewardedHistory(NotBaited)];
     AllTIChosenLogOdds = [AllTIChosenLogOdds, ChosenLogOdds(NotBaited)];
-    
+    %}
 end
 
 %% Average across sessions
@@ -1811,7 +1811,7 @@ set(RightExploringMTLogZScoreBoxchart,...
     'BoxFaceAlpha', 0,...
     'MarkerStyle', 'none',...
     'LineWidth', 0.2);
-
+%{
 % Value-TI GLM Coeff.
 X = AllTIChosenLogOdds';
 ValueTIGLM = fitglm(X, AllTI);
@@ -1850,7 +1850,7 @@ ValueTISqrtZScoreSignificantLine = line(ValueTISqrtZScoreGLMAxes,...
                                         'LineStyle', 'none',...
                                         'Color', 'k',...
                                         'Marker', '*');
-
+%}
 disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 
 DataPath = strcat(DataFolderPath, '\', FigureTitle, '.png');

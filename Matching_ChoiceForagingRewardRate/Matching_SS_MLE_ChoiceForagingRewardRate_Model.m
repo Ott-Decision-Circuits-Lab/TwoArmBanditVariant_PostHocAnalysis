@@ -7,8 +7,8 @@ TrialStartTimestamp = SessionData.TrialStartTimestamp(:, 1:nTrials) - SessionDat
 TrialTimeDuration = [0 diff(TrialStartTimestamp)];
 
 % Parametric estimation
-LowerBound = [0.00, 2, 0.00, 0.0, 0, -5];
-UpperBound = [1.00, 10, 1, 1, 1, 5];
+LowerBound = [0.00, 2, 0.00, 0.0, 0, -10];
+UpperBound = [1.00, 10, 1, 1, 1, 10];
 
 % Free parameters
 CalculateMLE = @(Parameters) ChoiceForagingRewardRate(Parameters, nTrials, ChoiceLeft, Rewarded, TrialTimeDuration);
@@ -22,11 +22,12 @@ for iInitialCond = 1:10
     % 20250708 tested with simulation that works well as initial parameters
     LearningRate = rand() / 2; % alpha
     InverseTemperature = rand() * 5; % beta
-    BackgroundRewardRateWeight = rand() * 2; % theta
+    BackgroundRewardRateWeight = rand() * 2; % phi
     ForgettingRate = rand() / 2; % gamma
-    BackgroundRewardRateDecayConstant = rand();
+    BackgroundRewardRateDecayConstant = rand(); 
+    BasalBackgroundRewardRate = randn(); % theta
     
-    InitialParameters = [LearningRate, InverseTemperature, BackgroundRewardRateWeight, ForgettingRate, BackgroundRewardRateDecayConstant];
+    InitialParameters = [LearningRate, InverseTemperature, BackgroundRewardRateWeight, ForgettingRate, BackgroundRewardRateDecayConstant, BasalBackgroundRewardRate];
 
     try
         [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
