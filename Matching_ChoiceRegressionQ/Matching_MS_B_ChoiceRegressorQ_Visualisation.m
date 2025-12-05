@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_B_ChoiceForaging_Visualisation(DataFolderPath, Prior)
+function AnalysisFigure = Matching_MS_B_ChoiceRegressorQ_Visualisation(DataFolderPath, Prior)
 % MS = MultiSession
 % B = Bayesian <- Prior using simulation & MCMC (Hamiltonian MC) sampling
 % from prior to get marginal posterior
@@ -32,7 +32,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_B_ChoiceForaging';
+AnalysisName = 'Matching_MS_B_ChoiceRegressorQ';
 
 %% Hierarchaical Symmetric Q-Learning with Forgetting and Stickiness model
 % Parametric Prior
