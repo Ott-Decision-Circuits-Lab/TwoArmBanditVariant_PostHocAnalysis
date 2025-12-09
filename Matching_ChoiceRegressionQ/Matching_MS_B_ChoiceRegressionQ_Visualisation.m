@@ -1,4 +1,4 @@
-function AnalysisFigure = Matching_MS_B_ChoiceRegressorQ_Visualisation(DataFolderPath, Prior)
+function AnalysisFigure = Matching_MS_B_ChoiceRegressionQ_Visualisation(DataFolderPath, Prior)
 % MS = MultiSession
 % B = Bayesian <- Prior using simulation & MCMC (Hamiltonian MC) sampling
 % from prior to get marginal posterior
@@ -32,7 +32,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_B_ChoiceRegressorQ';
+AnalysisName = 'Matching_MS_B_ChoiceRegressionQ';
 
 %% Hierarchaical Symmetric Q-Learning with Forgetting and Stickiness model
 % Parametric Prior
@@ -58,7 +58,7 @@ if nargin < 2
     
     Prior.BurnIn = 200;
     Prior.nSample = 1000;
-    Prior.nChain = 8;
+    Prior.nChain = 12;
 
 elseif fieldnames(Prior)
     disp('Error: Unknown input format. No further analysis can be performed.')
@@ -73,7 +73,7 @@ catch
         SessionData = DataHolder{iSession};
         
         try
-            Models{iSession} = Matching_SS_B_ChoiceRegressorQ_Model(SessionData, Prior);
+            Models{iSession} = Matching_SS_B_ChoiceRegressionQ_Model(SessionData, Prior);
         catch
             Models{iSession} = [];
             disp(strcat('Warning: Problem running model for Session', num2str(iSession)))

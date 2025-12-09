@@ -1,4 +1,4 @@
-function [LogPosterior, GradLogPosterior] = CalculateLogPosteriorChoiceRegressorQ(Parameters, SessionData, Prior)
+function [LogPosterior, GradLogPosterior] = CalculateLogPosteriorChoiceRegressionQ(Parameters, SessionData, Prior)
 
 %% unpack data
 nTrials = SessionData.nTrials;
@@ -13,7 +13,7 @@ ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
 Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
 
 %% calculate log likelihood & gradients
-[NegLogDataLikelihood, ~] = ChoiceRegressorQ(Parameters, nTrials, ChoiceLeft, Rewarded);
+[NegLogDataLikelihood, ~] = ChoiceRegressionQ(Parameters, nTrials, ChoiceLeft, Rewarded);
 GradLogLikelihood = zeros(1, length(Parameters));
 
 for iParameter = 1:length(Parameters)
@@ -22,12 +22,12 @@ for iParameter = 1:length(Parameters)
     NewParameters = Parameters;
     NewParameters(iParameter) = ThetaPlus;
 
-    [NegLogDataLikelihoodPlus, ~] = ChoiceRegressorQ(NewParameters, nTrials, ChoiceLeft, Rewarded);
+    [NegLogDataLikelihoodPlus, ~] = ChoiceRegressionQ(NewParameters, nTrials, ChoiceLeft, Rewarded);
     
     ThetaMinus = Parameters(iParameter) * 0.99;
     NewParameters(iParameter) = ThetaMinus;
     
-    [NegLogDataLikelihoodMinus, ~] = ChoiceRegressorQ(NewParameters, nTrials, ChoiceLeft, Rewarded);
+    [NegLogDataLikelihoodMinus, ~] = ChoiceRegressionQ(NewParameters, nTrials, ChoiceLeft, Rewarded);
 
     GradLogLikelihood(iParameter) = - ((NegLogDataLikelihoodPlus - NegLogDataLikelihood) ./ (ThetaPlus - Parameters(iParameter)) +...
                                       (NegLogDataLikelihoodMinus - NegLogDataLikelihood) ./ (ThetaMinus - Parameters(iParameter))) ./ 2;
@@ -70,7 +70,7 @@ LogPosterior = - NegLogDataLikelihood +...
 
 GradLogPosterior = GradLogLikelihood +...
                    [GradLogBiasPrior,...
-                    GradLogQCoeffPrior,
+                    GradLogQCoeffPrior,...
                     GradLogMinus1ChoicePrior,...
                     GradLogMinus1RewardPrior,...
                     GradLogMinus2ChoicePrior,...

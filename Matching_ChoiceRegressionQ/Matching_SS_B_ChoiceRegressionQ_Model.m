@@ -1,8 +1,8 @@
-function Model = Matching_SS_B_ChoiceRegressorQ_Model(SessionData, Prior)
+function Model = Matching_SS_B_ChoiceRegressionQ_Model(SessionData, Prior)
 % set initial point of MCMC around simulation results for MAP estimation
 SamplerInitialParameters = [0, 0.9, -0.2, 1, 0.5, -0.7]'; 
 
-LogPosteriorPDF = @(Parameters) CalculateLogPosteriorChoiceRegressorQ(Parameters, SessionData, Prior);
+LogPosteriorPDF = @(Parameters) CalculateLogPosteriorChoiceRegressionQ(Parameters, SessionData, Prior);
 Sampler = hmcSampler(LogPosteriorPDF, SamplerInitialParameters,...
                      'CheckGradient', false,...
                      'UseNumericalGradient', true);
