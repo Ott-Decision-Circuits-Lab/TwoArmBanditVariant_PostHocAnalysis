@@ -73,6 +73,7 @@ LogHyperPrior = LogLearningRateMuPrior...
 %% unpack data and calculate datalikelihood, i.e. P(y|theta_i)
 LogPosterior = 0;
 % GradLogPosterior = zeros(size(Parameters));
+
 for iSession = 1:length(DataHolder)
     SessionData = DataHolder{iSession};
     nTrials = SessionData.nTrials;
@@ -123,8 +124,10 @@ for iSession = 1:length(DataHolder)
                    + LogChoiceForgettingRatePrior...
                    + LogBiasPrior;
     
-    Theta = [LearningRate, InverseTemperature, ForgettingRate, ChoiceStickiness, ChoiceForgettingRate, Bias];
-    
+    LogPosterior = LogPosterior + LogPrior;
+
+    Thetas = [LearningRate, InverseTemperature, ForgettingRate, ChoiceStickiness, ChoiceForgettingRate, Bias];
+
     %% log data posterior
     ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
     Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
@@ -155,7 +158,6 @@ end
 
 %% calculate log posterior & gradients
 LogPosterior = LogPosterior +...
-               LogPrior * nSessions +...
                LogHyperPrior;
 
 %{

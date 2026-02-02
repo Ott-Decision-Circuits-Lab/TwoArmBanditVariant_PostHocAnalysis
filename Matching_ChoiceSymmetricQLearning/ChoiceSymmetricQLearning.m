@@ -8,7 +8,7 @@ InverseTemperature = Parameters(2); % beta
 ForgettingRate = Parameters(3); % gamma
 ChoiceStickiness = Parameters(4); % phi
 ChoiceForgettingRate = Parameters(5); % gamma_c
-Bias = 0; %Parameters(6);
+Bias = Parameters(6);
 
 % Q-value initialisation
 LeftValue = 0;
