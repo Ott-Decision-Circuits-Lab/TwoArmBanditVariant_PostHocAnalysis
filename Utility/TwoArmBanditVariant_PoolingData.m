@@ -109,8 +109,14 @@ for iAnimal = 1:length(p.Animal)
             disp(['No SessionFile in folder ', SessionDataFolders(iSession).name, ' is found.'])
             continue
         end
+        
+        try
+            load(SessionFilePath); % variable name will be 'SessionData'
+        catch
+            disp(strcat('Warning: unable to load -', SessionDataFolders(iSession).name, '. Probably session crashed.'))
+            continue
+        end
 
-        load(SessionFilePath); % variable name will be 'SessionData'
         if SessionData.nTrials >= 50 && SessionData.SettingsFile.GUI.CatchTrial && SessionData.SettingsFile.GUI.FeedbackDelayGrace >= 0.2 && SessionData.SettingsFile.GUI.FeedbackDelayMax == 8
             DataHolder{end+1} = SessionData;
         end
