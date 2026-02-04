@@ -9,15 +9,21 @@ function Model = Matching_MS_HB_ChoiceSymmetricQLearning_Model(DataHolder, Hyper
 
 %% hyper-prior
 % set initial point of MCMC around simulation results
-SamplerInitialHyperParameters = [0.25, 16,... % LearningRate: Mu, Kappa
-                                 8, 1,...     % InverseTemperature: Mean, Sigma
-                                 1/6, 12,...  % ForgettingRate: Mu, Kappa
-                                 -1, 1,...    % ChoiceStickiness: Mean, Sigma
-                                 5/8, 16,...  % ChoiceForgettingRate: Mu, Kappa
-                                 0, 1]';      % Bias: Mean, Sigma
+SamplerInitialHyperParameters = [0.25, 8,... % LearningRate: Mu, Kappa
+                                 8, 1,...    % InverseTemperature: Mean, Sigma
+                                 1/6, 8,...  % ForgettingRate: Mu, Kappa
+                                 -1, 1,...   % ChoiceStickiness: Mean, Sigma
+                                 5/8, 8,...  % ChoiceForgettingRate: Mu, Kappa
+                                 0, 1,...    % Bias: Mean, Sigma
+                                 0.25, 8, 1/6, -1, 5/8, 0]'; % all thetas      
+
+% convert Parameters to real number space
+SamplerInitialHyperParameters([1, 5, 9, 13, 15, 17]) = log(SamplerInitialHyperParameters([1, 5, 9, 13, 15, 17]) ./ (1 - SamplerInitialHyperParameters([1, 5, 9, 13, 15, 17])));
+SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]) = sqrt(SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]));
 
 LogPosteriorPDF = @(Parameters) CalculateLogPosteriorHBChoiceSymmetricQ(Parameters, DataHolder, HyperPrior);
 HyperPriorSampler = hmcSampler(LogPosteriorPDF, SamplerInitialHyperParameters,...
+                               'StepSize', 0.01,...
                                'CheckGradient', false,...
                                'UseNumericalGradient', true);
 
@@ -50,18 +56,9 @@ stuck, also MassVector may get into Nan
 
 for iChain = 1:HyperPrior.nChain
     InitialParameters = MAPParameters;
-    BetaIdx = [1, 2, 7, 8, 13, 14];
-    GammaIdx = 3 * (1:6);
-
-    InitialParameters(BetaIdx) = log(InitialParameters(BetaIdx) ./ (1 - InitialParameters(BetaIdx)));
-    InitialParameters(GammaIdx) = sqrt(InitialParameters(GammaIdx));
-
     InitialParameters = InitialParameters + randn(size(InitialParameters));
-    InitialParameters(BetaIdx) = 1 ./ (1 + exp(-InitialParameters(BetaIdx)));
-    InitialParameters(GammaIdx) = InitialParameters(GammaIdx) .^ 2;
     
     ChainInitialParameters{iChain} = InitialParameters;
-    
     Chains{iChain} = drawSamples(HyperPriorSampler,...
                                  'Start', ChainInitialParameters{iChain},...
                                  'Burnin', HyperPrior.BurnIn,...
@@ -83,10 +80,16 @@ Model.HyperPrior = HyperPrior;
 Model.SamplerInitialHyperParameters = SamplerInitialHyperParameters;
 Model.Sampler = PriorSampler;
 Model.SamplerTuningInfo = Info;
+
+% Transform MAPParameters back from real number space to designated space
+
 Model.MAPParameters = MAPParameters;
 Model.FitInfo = FitInfo;
 Model.EstimationFlag = EstimationSuccess;
 Model.ChainInitialParameters = ChainInitialParameters;
+
+% Transform Chains back from real number space to designated space
+
 Model.Chains = Chains;
 Model.Diags = Diags;
 % Model.ParametersMedian = Parameters;
