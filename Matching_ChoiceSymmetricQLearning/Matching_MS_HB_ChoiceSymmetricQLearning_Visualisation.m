@@ -89,9 +89,9 @@ if nargin < 2
     HyperPrior.BiasPrecisionAlpha = 1; % G(1, 1) gives mean = 1, var = 1
     HyperPrior.BiasPrecisionTheta = 1;
 
-    HyperPrior.BurnIn = 100;
-    HyperPrior.nSample = 200;
-    HyperPrior.nChain = 1; % (count(nHyperPriors) + count(nPriors)) * 2
+    HyperPrior.BurnIn = 200;
+    HyperPrior.nSample = 1000;
+    HyperPrior.nChain = 36; % (count(nHyperPriors) + count(nPriors)) * 2
 
 elseif fieldnames(HyperPrior)
     disp('Error: Unknown input format. No further analysis can be performed.')
