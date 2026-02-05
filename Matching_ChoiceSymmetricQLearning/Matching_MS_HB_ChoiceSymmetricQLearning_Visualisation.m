@@ -91,7 +91,7 @@ if nargin < 2
 
     HyperPrior.BurnIn = 200;
     HyperPrior.nSample = 1000;
-    HyperPrior.nChain = 36; % (count(nHyperPriors) + count(nPriors)) * 2
+    HyperPrior.nChain = 12; % (count(nHyperPriors) + count(nPriors)) * 2
 
 elseif fieldnames(HyperPrior)
     disp('Error: Unknown input format. No further analysis can be performed.')

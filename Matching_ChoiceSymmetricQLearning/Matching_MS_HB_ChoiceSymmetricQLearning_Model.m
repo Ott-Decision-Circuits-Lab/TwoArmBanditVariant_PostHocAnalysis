@@ -67,7 +67,7 @@ for iChain = 1:HyperPrior.nChain
                                  'NumPrint', 500);
 end
 
-Diags = diagnostics(PriorSampler, Chains);
+Diags = diagnostics(HyperPriorSampler, Chains);
 
 % Parameters = median(Chain);
 % nTrials = SessionData.nTrials;
@@ -78,7 +78,7 @@ Diags = diagnostics(PriorSampler, Chains);
 
 Model.HyperPrior = HyperPrior;
 Model.SamplerInitialHyperParameters = SamplerInitialHyperParameters;
-Model.Sampler = PriorSampler;
+Model.Sampler = HyperPriorSampler;
 Model.SamplerTuningInfo = Info;
 
 % Transform MAPParameters back from real number space to designated space
