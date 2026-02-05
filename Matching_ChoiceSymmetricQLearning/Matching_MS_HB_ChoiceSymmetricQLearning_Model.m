@@ -10,11 +10,11 @@ function Model = Matching_MS_HB_ChoiceSymmetricQLearning_Model(DataHolder, Hyper
 %% hyper-prior
 % set initial point of MCMC around simulation results
 SamplerInitialHyperParameters = [0.25, 8,... % LearningRate: Mu, Kappa
-                                 8, 1,...    % InverseTemperature: Mean, Sigma
+                                 8, 1,...    % InverseTemperature: Mean, precision
                                  1/6, 8,...  % ForgettingRate: Mu, Kappa
-                                 -1, 1,...   % ChoiceStickiness: Mean, Sigma
+                                 -1, 1,...   % ChoiceStickiness: Mean, precision
                                  5/8, 8,...  % ChoiceForgettingRate: Mu, Kappa
-                                 0, 1,...    % Bias: Mean, Sigma
+                                 0, 1,...    % Bias: Mean, precision
                                  0.25, 8, 1/6, -1, 5/8, 0]'; % all thetas      
 
 % convert Parameters to real number space
