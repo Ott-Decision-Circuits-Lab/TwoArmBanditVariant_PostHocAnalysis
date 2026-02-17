@@ -14,7 +14,7 @@ Plot = plot(Axes, [0, 1], YData, 'Color', 'k', 'Marker', 'o');
 set(Axes,...
     'XLim', [-0.5, 1.5],...
     'XTick', [0, 1],...
-    'XTickLabel', {'w/o memory', 'Q-RL'})
+    'XTickLabel', {'last memory', 'Q-RL'})
 ylabel(Axes,...
        '$-ln\mathcal{L}(\hat\theta, Y)$',...
        'Interpreter', 'latex')
@@ -25,7 +25,7 @@ set(SignificanceText, 'HorizontalAlignment', 'center')
 
 % for AIC
 nSessions = length(Models);
-ForagingAIC = -2 * ForagingRLMinNegLogDataLikelihood + 2 * 4;
+ForagingAIC = -2 * ForagingRLMinNegLogDataLikelihood + 2 * 5;
 QRLAIC = -2 * QRLMinNegLogDataLikelihood + 2 * 6;
 YData = [ForagingAIC', QRLAIC'];
 
