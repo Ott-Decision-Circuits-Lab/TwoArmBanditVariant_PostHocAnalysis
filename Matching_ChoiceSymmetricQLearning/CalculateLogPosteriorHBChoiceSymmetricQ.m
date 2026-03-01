@@ -1,65 +1,51 @@
 function LogPosterior = CalculateLogPosteriorHBChoiceSymmetricQ(Parameters, DataHolder, HyperPrior)
 % convert Parameters back from real number space to designated space
-Parameters([1, 5, 9, 13, 15, 17]) = 1 ./ (1 + exp(-Parameters([1, 5, 9, 13, 15, 17])));
-Parameters([2, 4, 6, 8, 10, 12]) = Parameters([2, 4, 6, 8, 10, 12]) .^ 2;
+HyperParameters = Parameters(1:12);
+HyperParameters([1, 5, 9]) = 1 ./ (1 + exp(-HyperParameters([1, 5, 9])));
+HyperParameters([2, 4, 6, 8, 10, 12]) = HyperParameters([2, 4, 6, 8, 10, 12]) .^ 2;
 
-%% calculate log likelihood of hyper-prior, i.e. P(THETA)
-LearningRateMuPrior = betapdf(Parameters(1), HyperPrior.LearningRateMuAlpha, HyperPrior.LearningRateMuBeta);
+SessionParameters = Parameters(13:end);
+SessionParameters = reshape(SessionParameters, 6, []);
+SessionParameters([1, 3, 5], :) = 1 ./ (1 + exp(-SessionParameters([1, 3, 5], :)));
+
+%% P(HyperPrior) ~ f(Hypermeters)
+% calculate log likelihood of hyper-prior, i.e. P(THETA)
+LearningRateMuPrior = betapdf(HyperParameters(1), HyperPrior.LearningRateMuAlpha, HyperPrior.LearningRateMuBeta);
 LogLearningRateMuPrior = log(LearningRateMuPrior); % = -log beta(alpha, beta) + (alpha-1) * logx + (beta-1) * log(1-x)
-% GradLogLearningRateMuPrior = (HyperPrior.LearningRateMuAlpha - 1) ./ Parameters(2)...
-%                                 - (HyperPrior.LearningRateMuBeta - 1) ./ (1 - Parameters(2));
 
-LearningRateKappaPrior = gampdf(Parameters(2), HyperPrior.LearningRateKappaAlpha, HyperPrior.LearningRateKappaTheta);
+LearningRateKappaPrior = gampdf(HyperParameters(2), HyperPrior.LearningRateKappaAlpha, HyperPrior.LearningRateKappaTheta);
 LogLearningRateKappaPrior = log(LearningRateKappaPrior);
-% GradLogLearningRateKappaPrior = (HyperPrior.LearningRateKappaAlpha - 1) ./ Parameters(3)...
-%                                     - HyperPrior.LearningRateKappaTheta;
 
-InverseTemperatureMeanPrior = normpdf(Parameters(3), HyperPrior.InverseTemperatureMeanMu, HyperPrior.InverseTemperatureMeanSigma);
+InverseTemperatureMeanPrior = normpdf(HyperParameters(3), HyperPrior.InverseTemperatureMeanMu, HyperPrior.InverseTemperatureMeanSigma);
 LogInverseTemperatureMeanPrior = log(InverseTemperatureMeanPrior); % = -log sigma - 0.5 * log (2*pi) - (x-mu).^2 ./ (2 * sigma^2)
-% GradLogInverseTemperatureMeanPrior = -(Parameters(5) - HyperPrior.InverseTemperatureMeanMu) ./ HyperPrior.InverseTemperatureMeanSigma.^2;
 
-InverseTemperaturePrecisionPrior = gampdf(Parameters(4), HyperPrior.InverseTemperaturePrecisionAlpha, HyperPrior.InverseTemperaturePrecisionTheta);
+InverseTemperaturePrecisionPrior = gampdf(HyperParameters(4), HyperPrior.InverseTemperaturePrecisionAlpha, HyperPrior.InverseTemperaturePrecisionTheta);
 LogInverseTemperaturePrecisionPrior = log(InverseTemperaturePrecisionPrior);
-% GradLogInverseTemperaturePrecisionPrior = (HyperPrior.InverseTemperaturePrecisionAlpha - 1) ./ Parameters(6)...
-%                                               - HyperPrior.InverseTemperaturePrecisionTheta;
 
-ForgettingRateMuPrior = betapdf(Parameters(5), HyperPrior.ForgettingRateMuAlpha, HyperPrior.ForgettingRateMuBeta);
+ForgettingRateMuPrior = betapdf(HyperParameters(5), HyperPrior.ForgettingRateMuAlpha, HyperPrior.ForgettingRateMuBeta);
 LogForgettingRateMuPrior = log(ForgettingRateMuPrior); % = -log beta(alpha, beta) + (alpha-1) * logx + (beta-1) * log(1-x)
-% GradLogForgettingRateMuPrior = (HyperPrior.ForgettingRateMuAlpha - 1) ./ Parameters(8)...
-%                                    - (HyperPrior.ForgettingRateMuBeta - 1) ./ (1 - Parameters(8));
 
-ForgettingRateKappaPrior = gampdf(Parameters(6), HyperPrior.ForgettingRateKappaAlpha, HyperPrior.ForgettingRateKappaTheta);
+ForgettingRateKappaPrior = gampdf(HyperParameters(6), HyperPrior.ForgettingRateKappaAlpha, HyperPrior.ForgettingRateKappaTheta);
 LogForgettingRateKappaPrior = log(ForgettingRateKappaPrior);
-% GradLogForgettingRateKappaPrior = (HyperPrior.ForgettingRateKappaAlpha - 1) ./ Parameters(9)...
-%                                       - HyperPrior.ForgettingRateKappaTheta;
 
-ChoiceStickinessMeanPrior = normpdf(Parameters(7), HyperPrior.ChoiceStickinessMeanMu, HyperPrior.ChoiceStickinessMeanSigma);
+ChoiceStickinessMeanPrior = normpdf(HyperParameters(7), HyperPrior.ChoiceStickinessMeanMu, HyperPrior.ChoiceStickinessMeanSigma);
 LogChoiceStickinessMeanPrior = log(ChoiceStickinessMeanPrior); % = -log sigma - 0.5 * log (2*pi) - (x-mu).^2 ./ (2 * sigma^2)
-% GradLogChoiceStickinessMeanPrior = -(Parameters(11) - HyperPrior.ChoiceStickinessMeanMu) ./ HyperPrior.ChoiceStickinessMeanSigma.^2;
 
-ChoiceStickinessPrecisionPrior = gampdf(Parameters(8), HyperPrior.ChoiceStickinessPrecisionAlpha, HyperPrior.ChoiceStickinessPrecisionTheta);
+ChoiceStickinessPrecisionPrior = gampdf(HyperParameters(8), HyperPrior.ChoiceStickinessPrecisionAlpha, HyperPrior.ChoiceStickinessPrecisionTheta);
 LogChoiceStickinessPrecisionPrior = log(ChoiceStickinessPrecisionPrior);
-% GradLogChoiceStickinessPrecisionPrior = (HyperPrior.ChoiceStickinessPrecisionAlpha - 1) ./ Parameters(12)...
-%                                             - HyperPrior.ChoiceStickinessPrecisionTheta;
 
-ChoiceForgettingRateMuPrior = betapdf(Parameters(9), HyperPrior.ChoiceForgettingRateMuAlpha, HyperPrior.ChoiceForgettingRateMuBeta);
+ChoiceForgettingRateMuPrior = betapdf(HyperParameters(9), HyperPrior.ChoiceForgettingRateMuAlpha, HyperPrior.ChoiceForgettingRateMuBeta);
 LogChoiceForgettingRateMuPrior = log(ChoiceForgettingRateMuPrior); % = -log beta(alpha, beta) + (alpha-1) * logx + (beta-1) * log(1-x)
-% GradLogChoiceForgettingRateMuPrior = (HyperPrior.ChoiceForgettingRateMuAlpha - 1) ./ Parameters(14)...
-%                                          - (HyperPrior.ChoiceForgettingRateMuBeta - 1) ./ (1 - Parameters(14));
 
-ChoiceForgettingRateKappaPrior = gampdf(Parameters(10), HyperPrior.ChoiceForgettingRateKappaAlpha, HyperPrior.ChoiceForgettingRateKappaTheta);
+ChoiceForgettingRateKappaPrior = gampdf(HyperParameters(10), HyperPrior.ChoiceForgettingRateKappaAlpha, HyperPrior.ChoiceForgettingRateKappaTheta);
 LogChoiceForgettingRateKappaPrior = log(ChoiceForgettingRateKappaPrior);
-% GradLogChoiceForgettingRateKappaPrior = (HyperPrior.ChoiceForgettingRateKappaAlpha - 1) ./ Parameters(15)...
-%                                             - HyperPrior.ChoiceForgettingRateKappaTheta;
 
-BiasMeanPrior = normpdf(Parameters(11), HyperPrior.BiasMeanMu, HyperPrior.BiasMeanSigma);
+BiasMeanPrior = normpdf(HyperParameters(11), HyperPrior.BiasMeanMu, HyperPrior.BiasMeanSigma);
 LogBiasMeanPrior = log(BiasMeanPrior); % = -log sigma - 0.5 * log (2*pi) - (x-mu).^2 ./ (2 * sigma^2)
 % GradLogBiasMeanPrior = -(Parameters(17) - HyperPrior.BiasMeanMu) ./ HyperPrior.BiasMeanSigma.^2;
 
-BiasPrecisionPrior = gampdf(Parameters(12), HyperPrior.BiasPrecisionAlpha, HyperPrior.BiasPrecisionTheta);
+BiasPrecisionPrior = gampdf(HyperParameters(12), HyperPrior.BiasPrecisionAlpha, HyperPrior.BiasPrecisionTheta);
 LogBiasPrecisionPrior = log(BiasPrecisionPrior);
-% GradLogBiasPrecisionPrior = (HyperPrior.BiasPrecisionAlpha - 1) ./ Parameters(18)...
-%                                 - HyperPrior.BiasPrecisionTheta;
 
 LogHyperPrior = LogLearningRateMuPrior...
                     + LogLearningRateKappaPrior...
@@ -75,8 +61,7 @@ LogHyperPrior = LogLearningRateMuPrior...
                     + LogBiasPrecisionPrior;
 
 %% unpack data and calculate datalikelihood, i.e. P(y|theta_i)
-LogPosterior = 0;
-% GradLogPosterior = zeros(size(Parameters));
+LogPosterior =  LogHyperPrior;
 
 for iSession = 1:length(DataHolder)
     SessionData = DataHolder{iSession};
@@ -86,38 +71,45 @@ for iSession = 1:length(DataHolder)
         fprintf('Session #%2.0f has only %3.0f trials. Too little for analysis.\n', iSession, nTrials)
         continue
     end
-
+    
+    %% log data posterior, i.e. P(Y_i | theta_i)
+    ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
+    Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
+    
+    Parameters = SessionParameters(:, iSession);
+    [NegLogDataLikelihood, ~] = ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded);
+    
     %% generate and calculate log prior & gradients i.e. P(theta_i|THETA)
-    LearningRate = Parameters(13); % betarnd(Parameters(1) * Parameters(2), (1 - Parameters(1)) * Parameters(2));
-    LearningRatePrior = betapdf(LearningRate, Parameters(1) * Parameters(2), (1 - Parameters(1)) * Parameters(2));
+    LearningRate = Parameters(1); % betarnd(Parameters(1) * Parameters(2), (1 - Parameters(1)) * Parameters(2));
+    LearningRatePrior = betapdf(LearningRate, HyperParameters(1) * HyperParameters(2), (1 - HyperParameters(1)) * HyperParameters(2));
     LogLearningRatePrior = log(LearningRatePrior); % = -log beta(alpha, beta) + (alpha-1) * logx + (beta-1) * log(1-x)
     % GradLogLearningRatePrior = (Parameters(2) * Parameters(3) - 1) ./ Parameters(1) +...
     %                                - ((1 - Parameters(2)) * Parameters(3) - 1) ./ (1 - Parameters(1));
     
-    InverseTemperature = Parameters(14); % normrnd(Parameters(3), sqrt(1 / Parameters(4)));
-    InverseTemperaturePrior = normpdf(InverseTemperature, Parameters(3), sqrt(1 / Parameters(4)));
+    InverseTemperature = Parameters(2); % normrnd(Parameters(3), sqrt(1 / Parameters(4)));
+    InverseTemperaturePrior = normpdf(InverseTemperature, HyperParameters(3), sqrt(1 / HyperParameters(4)));
     LogInverseTemperaturePrior = log(InverseTemperaturePrior); % = -log sigma - 0.5 * log (2*pi) - (x-mu).^2 ./ (2 * sigma^2)
     % GradLogInverseTemperaturePrior = -(Parameters(4) - Parameters(5)) * Parameters(6);
     
-    ForgettingRate = Parameters(15); % betarnd(Parameters(5) * Parameters(6), (1 - Parameters(5)) * Parameters(6));
-    ForgettingRatePrior = betapdf(ForgettingRate, Parameters(5) * Parameters(6), (1 - Parameters(5)) * Parameters(6));
+    ForgettingRate = Parameters(3); % betarnd(Parameters(5) * Parameters(6), (1 - Parameters(5)) * Parameters(6));
+    ForgettingRatePrior = betapdf(ForgettingRate, HyperParameters(5) * HyperParameters(6), (1 - HyperParameters(5)) * HyperParameters(6));
     LogForgettingRatePrior = log(ForgettingRatePrior);
     % GradLogForgettingRatePrior = (Parameters(8) * Parameters(9) - 1) ./ Parameters(7) +...
     %                                - ((1 - Parameters(8)) * Parameters(9) - 1) ./ (1 - Parameters(7));
     
-    ChoiceStickiness = Parameters(16); % normrnd(Parameters(7), sqrt(1 / Parameters(8)));
-    ChoiceStickinessPrior = normpdf(ChoiceStickiness, Parameters(7), sqrt(1 / Parameters(8)));
+    ChoiceStickiness = Parameters(4); % normrnd(Parameters(7), sqrt(1 / Parameters(8)));
+    ChoiceStickinessPrior = normpdf(ChoiceStickiness, HyperParameters(7), sqrt(1 / HyperParameters(8)));
     LogChoiceStickinessPrior = log(ChoiceStickinessPrior);
     % GradLogChoiceStickinessPrior = -(Parameters(10) - Parameters(11)) * Parameters(12);
     
-    ChoiceForgettingRate = Parameters(17); % betarnd(Parameters(9) * Parameters(10), (1 - Parameters(9)) * Parameters(10));
-    ChoiceForgettingRatePrior = betapdf(ChoiceForgettingRate, Parameters(9) * Parameters(10), (1 - Parameters(9)) * Parameters(10));
+    ChoiceForgettingRate = Parameters(5); % betarnd(Parameters(9) * Parameters(10), (1 - Parameters(9)) * Parameters(10));
+    ChoiceForgettingRatePrior = betapdf(ChoiceForgettingRate, HyperParameters(9) * HyperParameters(10), (1 - HyperParameters(9)) * HyperParameters(10));
     LogChoiceForgettingRatePrior = log(ChoiceForgettingRatePrior);
     % GradLogChoiceForgettingRatePrior = (Parameters(14) * Parameters(15) - 1) ./ Parameters(13) +...
     %                                        - ((1 - Parameters(14)) * Parameters(15) - 1) ./ (1 - Parameters(13));
     
-    Bias = Parameters(18); % normpdf(Parameters(11), sqrt(1 / Parameters(12)));
-    BiasPrior = normpdf(Bias, Parameters(11), sqrt(1 / Parameters(12)));
+    Bias = Parameters(6); % normpdf(Parameters(11), sqrt(1 / Parameters(12)));
+    BiasPrior = normpdf(Bias, HyperParameters(11), sqrt(1 / HyperParameters(12)));
     LogBiasPrior = log(BiasPrior);
     % GradLogBiasPrior = -(Parameters(16) - Parameters(17)) * Parameters(18);
     
@@ -127,50 +119,8 @@ for iSession = 1:length(DataHolder)
                    + LogChoiceStickinessPrior...
                    + LogChoiceForgettingRatePrior...
                    + LogBiasPrior;
+
+    LogPosterior = LogPosterior - NegLogDataLikelihood + LogPrior;
     
-    LogPosterior = LogPosterior + LogPrior;
-
-    Thetas = [LearningRate, InverseTemperature, ForgettingRate, ChoiceStickiness, ChoiceForgettingRate, Bias];
-
-    %% log data posterior
-    ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
-    Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
-
-    [NegLogDataLikelihood, ~] = ChoiceSymmetricQLearning(Thetas, nTrials, ChoiceLeft, Rewarded);
-    LogPosterior = LogPosterior - NegLogDataLikelihood;
-
-    %{
-    GradLogLikelihood = zeros(1, length(Parameters));
-    for iParameter = 1:length(Parameters)
-        ThetaPlus = Parameters(iParameter) * 1.01;
-        
-        NewParameters = Parameters;
-        NewParameters(iParameter) = ThetaPlus;
-    
-        [NegLogDataLikelihoodPlus, ~] = ChoiceSymmetricQLearning(NewParameters, nTrials, ChoiceLeft, Rewarded);
-        
-        ThetaMinus = Parameters(iParameter) * 0.99;
-        NewParameters(iParameter) = ThetaMinus;
-        
-        [NegLogDataLikelihoodMinus, ~] = ChoiceSymmetricQLearning(NewParameters, nTrials, ChoiceLeft, Rewarded);
-    
-        GradLogLikelihood(iParameter) = - ((NegLogDataLikelihoodPlus - NegLogDataLikelihood) ./ (ThetaPlus - Parameters(iParameter)) +...
-                                          (NegLogDataLikelihoodMinus - NegLogDataLikelihood) ./ (ThetaMinus - Parameters(iParameter))) ./ 2;
-    end
-    %}
 end
-
-%% calculate log posterior & gradients
-LogPosterior = LogPosterior +...
-               LogHyperPrior;
-
-%{
-GradLogPosterior = GradLogLikelihood +...
-                   [GradLogLearningRateMuPrior,...
-                    GradLogInverseTemperaturePrior,...
-                    GradLogForgettingRatePrior,...
-                    GradLogChoiceStickinessPrior,...
-                    GradLogChoiceForgettingRatePrior,...
-                    GradLogBiasPrior];
-%}
 end

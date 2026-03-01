@@ -15,21 +15,30 @@ SamplerInitialHyperParameters = [0.25, 8,... % LearningRate: Mu, Kappa
                                  -1, 1,...   % ChoiceStickiness: Mean, precision
                                  5/8, 8,...  % ChoiceForgettingRate: Mu, Kappa
                                  0, 1,...    % Bias: Mean, precision
-                                 0.25, 8, 1/6, -1, 5/8, 0]'; % all thetas      
+                                 ]'; % all thetas      
 
 % convert Parameters to real number space
-SamplerInitialHyperParameters([1, 5, 9, 13, 15, 17]) = log(SamplerInitialHyperParameters([1, 5, 9, 13, 15, 17]) ./ (1 - SamplerInitialHyperParameters([1, 5, 9, 13, 15, 17])));
+SamplerInitialHyperParameters([1, 5, 9]) = log(SamplerInitialHyperParameters([1, 5, 9]) ./ (1 - SamplerInitialHyperParameters([1, 5, 9])));
 SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]) = sqrt(SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]));
 
+% nSession x nParameter
+SesseionInitialParameters = [0.25, 8, 1/6, -1, 5/8, 0]';
+SesseionInitialParameters([1, 3, 5]) = log(SesseionInitialParameters([1, 3, 5]) ./ (1 - SesseionInitialParameters([1, 3, 5])));
+
+nSessions = length(DataHolder);
+SamplerInitialParameters = repmat(SesseionInitialParameters, [1, nSessions]);
+SamplerInitialParameters = reshape(SamplerInitialParameters, [], 1);
+
+% set up Sampler
+InitialParameters = [SamplerInitialHyperParameters; SamplerInitialParameters];
 LogPosteriorPDF = @(Parameters) CalculateLogPosteriorHBChoiceSymmetricQ(Parameters, DataHolder, HyperPrior);
-HyperPriorSampler = hmcSampler(LogPosteriorPDF, SamplerInitialHyperParameters,...
-                               'StepSize', 0.01,...
-                               'CheckGradient', false,...
-                               'UseNumericalGradient', true);
+Sampler = hmcSampler(LogPosteriorPDF, InitialParameters,...
+                     'CheckGradient', false,...
+                     'UseNumericalGradient', true);
 
 % MAP estimated by L-BFGS
 disp(strcat('Estimating MAP from -', datestr(datetime('now'))))
-[MAPParameters, FitInfo] = estimateMAP(HyperPriorSampler,...
+[MAPParameters, FitInfo] = estimateMAP(Sampler,...
                                        'VerbosityLevel', 0);
 
 EstimationSuccess = true;
@@ -47,7 +56,7 @@ stuck, also MassVector may get into Nan
 - 'NumStepsLimit', 100 <- limit NumStep to a lower range so that it won't tune the step size too small
 - ideal acceptance ratio = 0.65, but 0.3 is also okay
 %}
-[HyperPriorSampler, Info] = tuneSampler(HyperPriorSampler,...
+[Sampler, Info] = tuneSampler(Sampler,...
                                         'Start', MAPParameters,...
                                         'NumStepSizeTuningIterations', 10,...
                                         'NumStepsLimit', 100,...
@@ -59,7 +68,7 @@ for iChain = 1:HyperPrior.nChain
     InitialParameters = InitialParameters + randn(size(InitialParameters));
     
     ChainInitialParameters{iChain} = InitialParameters;
-    Chains{iChain} = drawSamples(HyperPriorSampler,...
+    Chains{iChain} = drawSamples(Sampler,...
                                  'Start', ChainInitialParameters{iChain},...
                                  'Burnin', HyperPrior.BurnIn,...
                                  'NumSamples', HyperPrior.nSample,...
@@ -67,7 +76,7 @@ for iChain = 1:HyperPrior.nChain
                                  'NumPrint', 500);
 end
 
-Diags = diagnostics(HyperPriorSampler, Chains);
+Diags = diagnostics(Sampler, Chains);
 
 % Parameters = median(Chain);
 % nTrials = SessionData.nTrials;
@@ -78,7 +87,7 @@ Diags = diagnostics(HyperPriorSampler, Chains);
 
 Model.HyperPrior = HyperPrior;
 Model.SamplerInitialHyperParameters = SamplerInitialHyperParameters;
-Model.Sampler = HyperPriorSampler;
+Model.Sampler = Sampler;
 Model.SamplerTuningInfo = Info;
 
 % Transform MAPParameters back from real number space to designated space
