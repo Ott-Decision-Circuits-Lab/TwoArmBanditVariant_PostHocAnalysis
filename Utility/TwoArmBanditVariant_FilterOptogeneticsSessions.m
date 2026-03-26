@@ -14,7 +14,7 @@ for iSession = 1:nSessions
         continue
     end
     
-    if isfield(SessionData.Custom.SessionMeta, 'OptoRemarks')
+    if isfield(SessionData.Custom.SessionMeta, 'OptoRemarks') || contains(SessionData.Custom.SessionMeta.BehaviouralRemarks, 'nm')
         OptoSession = [OptoSession, {SessionData}];
     else
         NonOptoSession = [NonOptoSession, {SessionData}];

@@ -2,11 +2,11 @@ function LogPosterior = CalculateLogPosteriorHBChoiceSymmetricQ(Parameters, Data
 % convert Parameters back from real number space to designated space
 HyperParameters = Parameters(1:12);
 HyperParameters([1, 5, 9]) = 1 ./ (1 + exp(-HyperParameters([1, 5, 9])));
-HyperParameters([2, 4, 6, 8, 10, 12]) = HyperParameters([2, 4, 6, 8, 10, 12]) .^ 2;
+HyperParameters([2, 4, 6, 8, 10, 12]) = exp(HyperParameters([2, 4, 6, 8, 10, 12]));
 
 SessionParameters = Parameters(13:end);
 SessionParameters = reshape(SessionParameters, 6, []);
-SessionParameters([1, 3, 5], :) = 1 ./ (1 + exp(-SessionParameters([1, 3, 5], :)));
+% SessionParameters([1, 3, 5], :) = 1 ./ (1 + exp(-SessionParameters([1, 3, 5], :)));
 
 %% P(HyperPrior) ~ f(Hypermeters)
 % calculate log likelihood of hyper-prior, i.e. P(THETA)
