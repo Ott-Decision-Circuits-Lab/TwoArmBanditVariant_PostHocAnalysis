@@ -2049,4 +2049,11 @@ exportgraphics(AnalysisFigure, DataPath);
 DataPath = strcat(DataFolderPath, '\', FigureTitle, '.fig');
 savefig(AnalysisFigure, DataPath);
 
+DataPath = strcat(DataFolderPath, '\', FigureTitle, '.pdf');
+savefig(AnalysisFigure, DataPath);
+
+AnalysisFigure = Matching_MS_B_ChoiceSymmetricQLearning_Diagnosis(DataFolderPath);
+
+
+
 end % function

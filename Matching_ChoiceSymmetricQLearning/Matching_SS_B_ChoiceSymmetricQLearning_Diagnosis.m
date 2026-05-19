@@ -638,6 +638,7 @@ ColourBar = colorbar(ColourBarAxes, 'location', 'southoutside');
 ColourBar.Label.String = 'Count';
 
 %% saving
+%{
 DataFolder = OttLabDataServerFolderPath;
 RatName = SessionData.Info.Subject;
 % %%The following lines doesn't not work, as the timestamp documented
@@ -654,5 +655,5 @@ DataPath = strcat(DataFolder, RatName, '\bpod_graph\',...
 exportgraphics(AnalysisFigure, DataPath);
 
 close(AnalysisFigure)
-
+%}
 end % function
