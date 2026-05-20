@@ -788,21 +788,20 @@ set(LRMTVevaiometricAxes,...
 xlabel(LRMTVevaiometricAxes, 'abs(Residuals)');
 
 %% saving
-DataFolder = OttLabDataServerFolderPath;
-RatName = SessionData.Info.Subject;
-% %%The following lines doesn't not work, as the timestamp documented
-% in the SessionData may not be the same as the one being used for saving
-% SessionDate = string(datetime(SessionData.Info.SessionDate), 'yyyyMMdd')';
-% SessionTime = string(datetime(SessionData.Info.SessionStartTime_UTC), 'HHmmSS')';
-% SessionDateTime = strcat(SessionDate, '_', SessionTime);
-DataPath = strcat(DataFolder, RatName, '\bpod_session\', SessionDateTime, '\',...
-                  RatName, '_TwoArmBanditVariant_', SessionDateTime, '_Matching_ChoiceSymmetricQLearning.png');
-exportgraphics(AnalysisFigure, DataPath);
-
-DataPath = strcat(DataFolder, RatName, '\bpod_graph\',...
-                  RatName, '_TwoArmBanditVariant_', SessionDateTime, '_Matching_ChoiceSymmetricQLearning.png');
-exportgraphics(AnalysisFigure, DataPath);
-
-close(AnalysisFigure)
-
+if ~strcmpi(SessionDateTime(end-5:end), '000000')
+    DataFolder = OttLabDataServerFolderPath;
+    RatName = SessionData.Info.Subject;
+    % %%The following lines doesn't not work, as the timestamp documented
+    % in the SessionData may not be the same as the one being used for saving
+    % SessionDate = string(datetime(SessionData.Info.SessionDate), 'yyyyMMdd')';
+    % SessionTime = string(datetime(SessionData.Info.SessionStartTime_UTC), 'HHmmSS')';
+    % SessionDateTime = strcat(SessionDate, '_', SessionTime);
+    DataPath = strcat(DataFolder, RatName, '\bpod_session\', SessionDateTime, '\',...
+                      RatName, '_TwoArmBanditVariant_', SessionDateTime, '_', AnalysisName, '.png');
+    exportgraphics(AnalysisFigure, DataPath);
+    
+    DataPath = strcat(DataFolder, RatName, '\bpod_graph\',...
+                      RatName, '_TwoArmBanditVariant_', SessionDateTime, '_', AnalysisName, '.png');
+    exportgraphics(AnalysisFigure, DataPath);
+end
 end % function
