@@ -31,12 +31,12 @@ DataPath = strcat(DataFolderPath, '\', FigureTitle, '.pdf');
 
 %% 
 AnalysisFigure = Matching_MS_B_ChoiceSymmetricQLearning_Visualisation(DataFolderPath);
-exportgraphics(AnalysisFigure, DataPath, 'Append', true);
+exportgraphics(AnalysisFigure, DataPath);
 
 close(AnalysisFigure)
 
 %%
-AnalysisFigure = Matching_MS_B_ChoiceSymmetricQLearning_Visualisation(DataFolderPath);
+AnalysisFigure = Matching_MS_B_ChoiceSymmetricQLearning_Diagnosis(DataFolderPath);
 exportgraphics(AnalysisFigure, DataPath, 'Append', true);
 
 close(AnalysisFigure)
