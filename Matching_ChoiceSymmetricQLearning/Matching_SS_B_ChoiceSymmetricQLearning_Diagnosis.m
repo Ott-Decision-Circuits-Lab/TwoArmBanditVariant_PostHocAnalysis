@@ -122,21 +122,6 @@ nChain = Model.Prior.nChain;
 Chains = Model.Chains;
 ConcatenatedChain = vertcat(Model.Chains{:});
 
-[Posterior, Values] = ksdensity(ConcatenatedChain(:, 2));
-InverseTemperature = Values(Posterior == max(Posterior));
-
-[Posterior, Values] = ksdensity(ConcatenatedChain(:, 3));
-ForgettingRate = Values(Posterior == max(Posterior));
-
-[Posterior, Values] = ksdensity(ConcatenatedChain(:, 4));
-ChoiceStickiness = Values(Posterior == max(Posterior));
-
-[Posterior, Values] = ksdensity(ConcatenatedChain(:, 5));
-ChoiceForgettingRate = Values(Posterior == max(Posterior));
-
-[Posterior, Values] = ksdensity(ConcatenatedChain(:, 6));
-Bias = Values(Posterior == max(Posterior));
-
 %% Chain progression
 % learning rate chain
 LearningRateChainAxes = axes(AnalysisFigure, 'Position', [0.01    0.61    0.28    0.08]);

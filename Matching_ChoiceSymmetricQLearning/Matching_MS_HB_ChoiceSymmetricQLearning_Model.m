@@ -79,6 +79,9 @@ for iChain = 1:HyperPrior.nChain
                                  'NumPrint', 500);
     
     % convert Chains back to their spaces
+    ChainInitialParameters{iChain}([1, 5, 9]) = 1 ./ (1 + exp(-ChainInitialParameters{iChain}([1, 5, 9])));
+    ChainInitialParameters{iChain}([2, 4, 6, 8, 10, 12]) = exp(ChainInitialParameters{iChain}([2, 4, 6, 8, 10, 12]));
+
     Chains{iChain}(:, [1, 5, 9]) = 1 ./ (1 + exp(-Chains{iChain}(:, [1, 5, 9])));
     Chains{iChain}(:, [2, 4, 6, 8, 10, 12]) = exp(Chains{iChain}(:, [2, 4, 6, 8, 10, 12]));
 end
