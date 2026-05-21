@@ -19,7 +19,7 @@ SamplerInitialHyperParameters = [0.25, 8,... % LearningRate: Mu, Kappa
 
 % convert Parameters to real number space
 SamplerInitialHyperParameters([1, 5, 9]) = log(SamplerInitialHyperParameters([1, 5, 9]) ./ (1 - SamplerInitialHyperParameters([1, 5, 9])));
-SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]) = exp(SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]));
+SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]) = log(SamplerInitialHyperParameters([2, 4, 6, 8, 10, 12]));
 
 % nSession x nParameter
 SesseionInitialParameters = [0.25, 8, 1/6, -1, 5/8, 0]';
@@ -56,14 +56,17 @@ stuck, also MassVector may get into Nan
 - 'NumStepsLimit', 100 <- limit NumStep to a lower range so that it won't tune the step size too small
 - ideal acceptance ratio = 0.65, but 0.3 is also okay
 %}
+disp(strcat('Turning Sampler from -', datestr(datetime('now'))))
 [Sampler, Info] = tuneSampler(Sampler,...
                               'Start', MAPParameters,...
+                              'MassVectorTuningMethod', 'iterative-sampling',...
                               'NumStepSizeTuningIterations', 10,...
                               'NumStepsLimit', 100,...
                               'VerbosityLevel', 1,...
                               'NumPrint', 1);
 
 for iChain = 1:HyperPrior.nChain
+    disp(strcat('Running ', num2str(iChain), '-th chain from -', datestr(datetime('now'))))
     InitialParameters = MAPParameters;
     InitialParameters = InitialParameters + randn(size(InitialParameters));
     
