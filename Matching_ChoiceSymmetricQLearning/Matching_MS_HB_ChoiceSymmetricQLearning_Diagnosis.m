@@ -1,10 +1,10 @@
-function AnalysisFigure = Matching_MS_B_ChoiceSymmetricQLearning_Diagnosis(DataFolderPath)
+function AnalysisFigure = Matching_MS_HB_ChoiceSymmetricQLearning_Diagnosis(DataFolderPath)
 % MS = MultiSession
-% B = Bayesian <- Prior using simulation & MCMC (Hamiltonian MC) sampling
-% from prior to get marginal posterior
+% HB = Hierarchical Bayesian <- find hyperparameters using simulation & MCMC (Hamiltonian MC) sampling
+% from hyperparameters to get prior
 % Matching Analysis Function
 % Developed by Antonio Lee @ BCCN Berlin
-% Version 1.0 ~ Jan 2025
+% Version 1.0 ~ Dez 2025
 % Model iteration see the end of script
 
 %% load files
@@ -17,7 +17,7 @@ end
 
 try
     load(fullfile(DataFolderPath, '\Selected_Data.mat'));
-    load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
+    % load(fullfile(DataFolderPath, '\Concatenated_Data.mat'));
 catch
     disp('Error: Selected DataFolderPath does not contain the required .mat for further steps.')
     return
@@ -32,7 +32,7 @@ if isnan(RatID)
 end
 RatName = num2str(RatID);
 
-AnalysisName = 'Matching_MS_B_ChoiceSymmetricQLearning';
+AnalysisName = 'Matching_MS_HB_ChoiceSymmetricQLearning';
 
 %% Hierarchaical Symmetric Q-Learning with Forgetting and Stickiness model
 try
@@ -42,8 +42,8 @@ catch
     return
 end
 
-if ~exist('Models', 'var')
-    disp('Error: Loaded data is not a Models')
+if ~exist('Model', 'var')
+    disp('Error: Loaded data is not a Model')
     return
 end
 
@@ -314,25 +314,25 @@ for iSession = 1:length(DataHolder)
     Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
 
     %% Analysis across sessions
-    Model = Models{iSession};
     Chain = vertcat(Model.Chains{:});
+    ChainIdx = 12 + (iSession - 1) * 6;
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 1));
+    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 1));
     LearningRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 2));
+    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 2));
     InverseTemperatureMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 3));
+    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 3));
     ForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 4));
+    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 4));
     ChoiceStickinessMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 5));
+    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 5));
     ChoiceForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, 6));
+    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 6));
     BiasMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
     MAPEstimates = [LearningRateMAPs(iSession), InverseTemperatureMAPs(iSession), ForgettingRateMAPs(iSession),...

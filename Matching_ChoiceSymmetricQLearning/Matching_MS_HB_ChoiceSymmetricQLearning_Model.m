@@ -77,6 +77,10 @@ for iChain = 1:HyperPrior.nChain
                                  'NumSamples', HyperPrior.nSample,...
                                  'VerbosityLevel', 1,...
                                  'NumPrint', 500);
+    
+    % convert Chains back to their spaces
+    Chains{iChain}(:, [1, 5, 9]) = 1 ./ (1 + exp(-Chains{iChain}(:, [1, 5, 9])));
+    Chains{iChain}(:, [2, 4, 6, 8, 10, 12]) = log(Chains{iChain}(:, [2, 4, 6, 8, 10, 12]));
 end
 
 Diags = diagnostics(Sampler, Chains);

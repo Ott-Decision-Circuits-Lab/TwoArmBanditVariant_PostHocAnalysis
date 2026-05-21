@@ -6,6 +6,7 @@ end
 nSessions = length(DataHolder);
 OptoSession = {};
 NonOptoSession = {};
+OptoMeta = {};
 for iSession = 1:nSessions
     SessionData = DataHolder{iSession};
     
@@ -14,8 +15,12 @@ for iSession = 1:nSessions
         continue
     end
     
-    if isfield(SessionData.Custom.SessionMeta, 'OptoRemarks') || contains(SessionData.Custom.SessionMeta.BehaviouralRemarks, 'nm')
+    if isfield(SessionData.Custom.SessionMeta, 'OptoRemarks')
         OptoSession = [OptoSession, {SessionData}];
+        OptoMeta = [OptoMeta; {SessionData.Custom.SessionMeta.OptoRemarks}];
+    elseif contains(SessionData.Custom.SessionMeta.BehaviouralRemarks, 'nm')
+        OptoSession = [OptoSession, {SessionData}];
+        OptoMeta = [OptoMeta; {SessionData.Custom.SessionMeta.BehaviouralRemarks}];
     else
         NonOptoSession = [NonOptoSession, {SessionData}];
     end

@@ -63,71 +63,6 @@ if nTrials < 50
     AnalysisFigure = [];
     return
 end
-ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
-Baited = SessionData.Custom.TrialData.Baited(:, 1:nTrials);
-IncorrectChoice = SessionData.Custom.TrialData.IncorrectChoice(1:nTrials);
-NoDecision = SessionData.Custom.TrialData.NoDecision(1:nTrials);
-NoTrialStart = SessionData.Custom.TrialData.NoTrialStart(1:nTrials);
-BrokeFixation = SessionData.Custom.TrialData.BrokeFixation(1:nTrials);
-EarlyWithdrawal = SessionData.Custom.TrialData.EarlyWithdrawal(1:nTrials);
-StartNewTrial = SessionData.Custom.TrialData.StartNewTrial(1:nTrials);
-SkippedFeedback = SessionData.Custom.TrialData.SkippedFeedback(1:nTrials);
-Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
-
-SampleTime = SessionData.Custom.TrialData.SampleTime(1:nTrials);
-MoveTime = SessionData.Custom.TrialData.MoveTime(1:nTrials);
-FeedbackWaitingTime = SessionData.Custom.TrialData.FeedbackWaitingTime(1:nTrials);
-% FeedbackDelay = SessionData.Custom.TrialData.FeedbackDelay(1:nTrials);
-% FeedbackWaitingTime = rand(nTrials,1)*10; %delete this
-% FeedbackWaitingTime = FeedbackWaitingTime';  %delete this
-% FeedbackDelay = rand(nTrials,1)*10; %delete this
-% FeedbackDelay= FeedbackDelay'; 
-
-RewardProb = SessionData.Custom.TrialData.RewardProb(:, 1:nTrials);
-LightLeft = SessionData.Custom.TrialData.LightLeft(1:nTrials);
-LightLeftRight = [LightLeft; 1-LightLeft]; 
-ChoiceLeftRight = [ChoiceLeft; 1-ChoiceLeft]; 
-
-BlockNumber = SessionData.Custom.TrialData.BlockNumber(:, 1:nTrials);
-BlockTrialNumber = SessionData.Custom.TrialData.BlockTrialNumber(:, 1:nTrials);
-
-% for files before April 2023, no DrinkingTime is available
-try
-    DrinkingTime = SessionData.Custom.TrialData.DrinkingTime(1:nTrials);
-catch
-    DrinkingTime = nan(1, nTrials);
-end
-
-LeftFeedbackDelayGraceTime = [];
-RightFeedbackDelayGraceTime = [];
-FirstDrinkingTime = [];
-LatestRewardTimestamp = [];
-for iTrial = 1:nTrials
-    if ChoiceLeft(iTrial) == 1
-        LeftFeedbackDelayGraceTime = [LeftFeedbackDelayGraceTime;...
-                                      SessionData.RawEvents.Trial{iTrial}.States.LInGrace(:,2) -...
-                                      SessionData.RawEvents.Trial{iTrial}.States.LInGrace(:,1)];
-    elseif ChoiceLeft(iTrial) == 0
-        RightFeedbackDelayGraceTime = [RightFeedbackDelayGraceTime;...
-                                       SessionData.RawEvents.Trial{iTrial}.States.RInGrace(:,2) -...
-                                       SessionData.RawEvents.Trial{iTrial}.States.RInGrace(:,1)];
-    end
-    
-    FirstDrinkingTime = [FirstDrinkingTime SessionData.RawEvents.Trial{iTrial}.States.Drinking(1,1)];
-    if iTrial == 1
-        LatestRewardTimestamp(iTrial) = 0;
-    elseif isnan(SessionData.RawEvents.Trial{iTrial-1}.States.Drinking(1,1))
-        LatestRewardTimestamp(iTrial) = LatestRewardTimestamp(iTrial-1);
-    else
-        LatestRewardTimestamp(iTrial) = SessionData.RawEvents.Trial{iTrial-1}.States.Drinking(1,1) + SessionData.TrialStartTimestamp(iTrial-1);
-    end
-end
-LatestRewardTime = SessionData.TrialStartTimestamp - LatestRewardTimestamp;
-
-LeftFeedbackDelayGraceTime = LeftFeedbackDelayGraceTime(~isnan(LeftFeedbackDelayGraceTime))';
-LeftFeedbackDelayGraceTime = LeftFeedbackDelayGraceTime(LeftFeedbackDelayGraceTime < SessionData.SettingsFile.GUI.FeedbackDelayGrace - 0.0001);
-RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(~isnan(RightFeedbackDelayGraceTime))';
-RightFeedbackDelayGraceTime = RightFeedbackDelayGraceTime(RightFeedbackDelayGraceTime < SessionData.SettingsFile.GUI.FeedbackDelayGrace - 0.0001);
 
 %% Common plots regardless of task design/ risk type
 % create figure
@@ -174,7 +109,6 @@ if nargin < 2
         return
     end
 end
-
 
 %% extract info of the chains
 ChainInitialParameters = [Model.ChainInitialParameters{:}];
@@ -425,6 +359,11 @@ set(LearningRateDensityAxes,...
     'TickDir', 'out')
 title(LearningRateDensityAxes, sprintf('Probability\ndensity'))
 
+
+set(LearningRateChainAxes,...
+    'YLim', LearningRateDensityAxes.YLim,...
+    'YTick', LearningRateDensityAxes.YTick)
+
 % inverse temperature
 InverseTemperatureDensityAxes = axes(AnalysisFigure, 'Position', [0.34    0.50    0.05    0.08]);
 hold(InverseTemperatureDensityAxes, 'on')
@@ -450,6 +389,10 @@ set(InverseTemperatureDensityAxes,...
     'YTickLabel', {},...
     'FontSize', 10,...
     'TickDir', 'out')
+
+set(InverseTemperatureChainAxes,...
+    'YLim', InverseTemperatureDensityAxes.YLim,...
+    'YTick', InverseTemperatureDensityAxes.YTick)
 
 % forgetting rate
 ForgettingRateDensityAxes = axes(AnalysisFigure, 'Position', [0.34    0.39    0.05    0.08]);
@@ -477,6 +420,10 @@ set(ForgettingRateDensityAxes,...
     'FontSize', 10,...
     'TickDir', 'out')
 
+set(ForgettingRateChainAxes,...
+    'YLim', ForgettingRateDensityAxes.YLim,...
+    'YTick', ForgettingRateDensityAxes.YTick)
+
 % choice stickiness
 ChoiceStickinessDensityAxes = axes(AnalysisFigure, 'Position', [0.34    0.28    0.05    0.08]);
 hold(ChoiceStickinessDensityAxes, 'on')
@@ -502,6 +449,10 @@ set(ChoiceStickinessDensityAxes,...
     'YTickLabel', {},...
     'FontSize', 10,...
     'TickDir', 'out')
+
+set(ChoiceStickinessChainAxes,...
+    'YLim', ChoiceStickinessDensityAxes.YLim,...
+    'YTick', ChoiceStickinessDensityAxes.YTick)
 
 % choice forgetting rate
 ChoiceForgettingRateDensityAxes = axes(AnalysisFigure, 'Position', [0.34    0.17    0.05    0.08]);
@@ -529,6 +480,10 @@ set(ChoiceForgettingRateDensityAxes,...
     'FontSize', 10,...
     'TickDir', 'out')
 
+set(ChoiceForgettingRateChainAxes,...
+    'YLim', ChoiceForgettingRateDensityAxes.YLim,...
+    'YTick', ChoiceForgettingRateDensityAxes.YTick)
+
 % bias
 BiasDensityAxes = axes(AnalysisFigure, 'Position', [0.34    0.06    0.05    0.08]);
 hold(BiasDensityAxes, 'on')
@@ -555,6 +510,10 @@ set(BiasDensityAxes,...
     'FontSize', 10,...
     'TickDir', 'out')
 xlabel(BiasDensityAxes, 'p.d.f.')
+
+set(BiasChainAxes,...
+    'YLim', BiasDensityAxes.YLim,...
+    'YTick', BiasDensityAxes.YTick)
 
 %% sample distribution of posterior
 % learning rate
