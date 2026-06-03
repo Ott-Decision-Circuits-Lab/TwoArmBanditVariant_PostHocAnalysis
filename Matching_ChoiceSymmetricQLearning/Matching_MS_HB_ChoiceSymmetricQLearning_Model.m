@@ -88,30 +88,51 @@ end
 
 Diags = diagnostics(Sampler, Chains);
 
-% Parameters = median(Chain);
-% nTrials = SessionData.nTrials;
-% ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
-% Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
-% 
-% [NegLogDataLikelihood, Values] = ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded);
+%% constructing model
+% general info for MCMC and fit
+Model.General.Sampler = Sampler;
+Model.General.SamplerTuningInfo = Info;
+Model.General.FitInfo = FitInfo;
+Model.General.EstimationFlag = EstimationSuccess;
 
-Model.HyperPrior = HyperPrior;
-Model.SamplerInitialHyperParameters = SamplerInitialHyperParameters;
-Model.Sampler = Sampler;
-Model.SamplerTuningInfo = Info;
+% subject level MCMC and fit
+ParameterIdx = 1:12;
+Model.HyperModel.MAPParameters = MAPParameters(ParameterIdx);
+Model.HyperModel.SamplerInitialParameters =  SamplerInitialHyperParameters;
+Model.HyperModel.HyperPrior = HyperPrior;
+Model.HyperModel.FitInfo = FitInfo;
+Model.HyperModel.FitInfo.Gradient = FitInfo.Gradient(ParameterIdx);
 
-% Transform MAPParameters back from real number space to designated space
+for iChain = 1:HyperPrior.nChain
+    Model.HyperModel.ChainInitialParameters{iChain} = ChainInitialParameters{iChain}(ParameterIdx);
+    Model.HyperModel.Chains{iChain} = Chains{iChain}(:, ParameterIdx);
+end
+Model.HyperModel.Diags = Diags(ParameterIdx, :);
 
-Model.MAPParameters = MAPParameters;
-Model.FitInfo = FitInfo;
-Model.EstimationFlag = EstimationSuccess;
-Model.ChainInitialParameters = ChainInitialParameters;
+% session level MCMC and fit
+for iSession = 1:length(DataHolder)
+    ParameterIdx = 12 + (iSession - 1) * 6 + (1:6);
+    Model.SessionModel{iSession}.MAPParameters = MAPParameters(ParameterIdx);
+    Model.SessionModel{iSession}.SamplerInitialParameters =  SesseionInitialParameters;
+    Model.SessionModel{iSession}.FitInfo = FitInfo;
+    Model.SessionModel{iSession}.FitInfo.Gradient = FitInfo.Gradient(ParameterIdx);
+    
+    for iChain = 1:HyperPrior.nChain
+        Model.SessionModel{iSession}.ChainInitialParameters{iChain} = ChainInitialParameters{iChain}(ParameterIdx);
+        Model.SessionModel{iSession}.Chains{iChain} = Chains{iChain}(:, ParameterIdx);
+    end
+    Model.SessionModel{iSession}.Diags = Diags(ParameterIdx, :);
 
-% Transform Chains back from real number space to designated space
+    % Parameters = median(Chain);
+    % nTrials = SessionData.nTrials;
+    % ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
+    % Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
+    % 
+    % [NegLogDataLikelihood, Values] = ChoiceSymmetricQLearning(Parameters, nTrials, ChoiceLeft, Rewarded);
 
-Model.Chains = Chains;
-Model.Diags = Diags;
-% Model.ParametersMedian = Parameters;
-% Model.NegLogDataLikelihood = NegLogDataLikelihood;
-% Model.PredictedValues = Values;
+    % Model.ParametersMedian = Parameters;
+    % Model.NegLogDataLikelihood = NegLogDataLikelihood;
+    % Model.PredictedValues = Values;
+end
+
 end % function
