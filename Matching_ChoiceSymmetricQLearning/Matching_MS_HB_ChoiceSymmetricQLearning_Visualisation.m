@@ -78,7 +78,7 @@ if nargin < 2
     % distribution (KappaAlpha, KappaTheta), mu = 5/8, kappa = 16
     HyperPrior.ChoiceForgettingRateMuAlpha = 10; % beta(10, 6) gives mean ~0.63, SD ~0.12
     HyperPrior.ChoiceForgettingRateMuBeta = 6;
-    HyperPrior.ChoiceForgettingRateKappaAlpha = 16; % gamma(16, 1) gives mean = 12, var = 12
+    HyperPrior.ChoiceForgettingRateKappaAlpha = 16; % gamma(16, 1) gives mean = 16, var = 16
     HyperPrior.ChoiceForgettingRateKappaTheta = 1;
     
     % Bias is normal distribution, controlled by a
@@ -86,7 +86,7 @@ if nargin < 2
     % 1./Sigma^2 (precision) in gamma (PrecisionAlpha, PrecisionTheta)
     HyperPrior.BiasMeanMu = 0; % normal distribution
     HyperPrior.BiasMeanSigma = 1;
-    HyperPrior.BiasPrecisionAlpha = 1; % G(1, 1) gives mean = 1, var = 1
+    HyperPrior.BiasPrecisionAlpha = 1; % gamma(1, 1) gives mean = 1, var = 1
     HyperPrior.BiasPrecisionTheta = 1;
 
     HyperPrior.BurnIn = 200;
