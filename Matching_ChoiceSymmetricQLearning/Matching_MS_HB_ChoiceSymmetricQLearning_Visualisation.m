@@ -674,25 +674,24 @@ for iSession = 1:length(DataHolder)
     TrialEndTimeStamp = SessionData.TrialEndTimestamp;
     
     %% Analysis across sessions
-    Chain = vertcat(Model.Chains{:});
-    ChainIdx = 12 + (iSession - 1) * 6;
-
-    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 1));
+    Chain = vertcat(Model.SessionModel{iSession}.Chains{:});
+    
+    [ProbDensity, Values] = ksdensity(Chain(:, 1));
     LearningRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 2));
+    [ProbDensity, Values] = ksdensity(Chain(:, 2));
     InverseTemperatureMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 3));
+    [ProbDensity, Values] = ksdensity(Chain(:, 3));
     ForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 4));
+    [ProbDensity, Values] = ksdensity(Chain(:, 4));
     ChoiceStickinessMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 5));
+    [ProbDensity, Values] = ksdensity(Chain(:, 5));
     ChoiceForgettingRateMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
-    [ProbDensity, Values] = ksdensity(Chain(:, ChainIdx + 6));
+    [ProbDensity, Values] = ksdensity(Chain(:, 6));
     BiasMAPs(iSession) = Values(ProbDensity == max(ProbDensity));
     
     MAPEstimates = [LearningRateMAPs(iSession), InverseTemperatureMAPs(iSession), ForgettingRateMAPs(iSession),...
