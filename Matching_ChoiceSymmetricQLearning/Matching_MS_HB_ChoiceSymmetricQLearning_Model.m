@@ -68,7 +68,10 @@ disp(strcat('Turning Sampler from -', datestr(datetime('now'))))
 for iChain = 1:HyperPrior.nChain
     disp(strcat('Running ', num2str(iChain), '-th chain from -', datestr(datetime('now'))))
     InitialParameters = MAPParameters;
+    
+    InitialParameters(13:2:end) = log(InitialParameters(13:2:end) ./ (1 - InitialParameters(13:2:end)));
     InitialParameters = InitialParameters + randn(size(InitialParameters));
+    InitialParameters(13:2:end) = 1 ./ (1 + exp(-InitialParameters(13:2:end)));
     
     ChainInitialParameters{iChain} = InitialParameters;
     Chains{iChain} = drawSamples(Sampler,...
