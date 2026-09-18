@@ -25,16 +25,16 @@ set(SignificanceText, 'HorizontalAlignment', 'center')
 
 % for AIC
 nSessions = length(Models);
-ForagingAIC = -2 * ForagingRLMinNegLogDataLikelihood + 2 * 5;
-QRLAIC = -2 * QRLMinNegLogDataLikelihood + 2 * 6;
+ForagingAIC = 2 * ForagingRLMinNegLogDataLikelihood + 2 * 8;
+QRLAIC = 2 * QRLMinNegLogDataLikelihood + 2 * 6;
 YData = [ForagingAIC', QRLAIC'];
 
 for iSession = 1:nSessions
     set(Plot(iSession), 'YData', YData(iSession, :))
 end
 
-set(Axes, 'YLim', [-1200, 0])
-set(SignificanceText, 'Position', [0.5, -1100, 0])
+set(Axes, 'YLim', [0, 1200])
+set(SignificanceText, 'Position', [0.5, 1100, 0])
 
 ylabel('AIC (a.u.)', 'Interpret', 'none')
 
