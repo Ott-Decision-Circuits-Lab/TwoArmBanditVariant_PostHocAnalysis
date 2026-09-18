@@ -4,26 +4,20 @@ ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
 Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
 
 % Parametric estimation
-LowerBound = [0.00, 2, 0.00, 0.0];
-UpperBound = [1.00, 10, 1, 1];
+LowerBound = [0.05, -10, 0, 0.05];
+UpperBound = [0.65,  20, 1, 0.45];
 
-% Free parameters
 CalculateMLE = @(Parameters) ChoiceForaging(Parameters, nTrials, ChoiceLeft, Rewarded);
 
 Model = struct();
 Model.LowerBound = LowerBound;
 Model.UpperBound = UpperBound;
-Model.MinNegLogDataLikelihood = 0;
+Model.MinNegLogDataLikelihood = inf;
 
-for iInitialCond = 1:10
-    % 20250708 tested with simulation that works well as initial parameters
-    LearningRate = rand() / 2; % alpha
-    InverseTemperature = rand() * 5; % beta
-    Threshold = rand() * 2; % theta
-    ForgettingRate = rand() / 2; % gamma
+for iInitialCond = 1:20
+    InitialParameters...
+        = LowerBound + rand * (UpperBound - LowerBound);
     
-    InitialParameters = [LearningRate, InverseTemperature, Threshold, ForgettingRate];
-
     try
         [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
             fmincon(CalculateMLE, InitialParameters, [], [], [], [], LowerBound, UpperBound);
@@ -33,7 +27,7 @@ for iInitialCond = 1:10
         MinNegLogDataLikelihood = nan;
     end
     
-    if Model.MinNegLogDataLikelihood < MinNegLogDataLikelihood
+    if Model.MinNegLogDataLikelihood > MinNegLogDataLikelihood
         Model.LowerBound = LowerBound;
         Model.UpperBound = UpperBound;
         Model.InitialParameters = InitialParameters;
