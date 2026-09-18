@@ -7,24 +7,17 @@ Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
 LowerBound = [0, 0, 0, 0, 0];
 UpperBound = [10, 1, 1, 1, 1];
 
-% Free parameters
 CalculateMLE = @(Parameters) ChoiceBetaDist(Parameters, nTrials, ChoiceLeft, Rewarded);
 
 Model = struct();
 Model.LowerBound = LowerBound;
 Model.UpperBound = UpperBound;
-Model.MinNegLogDataLikelihood = 0;
+Model.MinNegLogDataLikelihood = Inf;
 
-for iInitialCond = 1:10
-    % 20250708 tested with simulation that works well as initial parameters
-    AlphaLearningStepSize = rand * 5; % \delta_\alpha
-    AlphaForgettingRate = rand / 5; % \gamma_\alpha
-    RLearningRate = rand / 5; % \alpha_R
-    RForgettingRate = rand / 5; % \gamma_R
-    Bias = rand; %
+for iInitialCond = 1:20
+    InitialParameters...
+        = LowerBound + rand * (UpperBound - LowerBound);
     
-    InitialParameters = [AlphaLearningStepSize, AlphaForgettingRate, RLearningRate, RForgettingRate, Bias];
-
     try
         [EstimatedParameters, MinNegLogDataLikelihood, ~, ~, ~, Grad, Hessian] =...
             fmincon(CalculateMLE, InitialParameters, [], [], [], [], LowerBound, UpperBound);
@@ -34,7 +27,7 @@ for iInitialCond = 1:10
         MinNegLogDataLikelihood = nan;
     end
     
-    if Model.MinNegLogDataLikelihood < MinNegLogDataLikelihood
+    if Model.MinNegLogDataLikelihood > MinNegLogDataLikelihood
         Model.LowerBound = LowerBound;
         Model.UpperBound = UpperBound;
         Model.InitialParameters = InitialParameters;
