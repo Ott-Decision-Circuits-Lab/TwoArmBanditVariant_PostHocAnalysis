@@ -4,8 +4,8 @@ ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
 Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
 
 % Parametric estimation
-LowerBound = [0.05, -10, 0.05, -2, 0.5, -10,   0, -2];
-UpperBound = [0.65,  20, 0.45,  1,   1,  20, 0.2,  2];
+LowerBound = [0.05, -10, 0, -2, 0.5, -10,   0, -2];
+UpperBound = [0.65,  20, 0,  1,   1,  20, 0.2,  2];
 
 CalculateMLE = @(Parameters) ChoiceBeliefState(Parameters, nTrials, ChoiceLeft, Rewarded);
 
