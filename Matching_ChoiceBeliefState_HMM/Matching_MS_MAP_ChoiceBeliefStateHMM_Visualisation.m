@@ -61,19 +61,19 @@ end
 %% MoA-GMM solved by EM algorithm (2-5 states)
 AnalysisName = 'Matching_MS_MAP_ChoiceBeliefStateHMM';
 
-Model = {};
+Models = {};
 try
     load(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')));
 catch
     try
-        Model = Matching_MS_MAP_ChoiceBeliefStateHMM_Model(DataHolder, Models);
+        Models = Matching_MS_MAP_ChoiceBeliefStateHMM_Model(DataHolder, Models);
     catch
-        Model = [];
+        Models = [];
         disp(strcat('Warning: Problem running MoA-HMM model.'))
         return
     end
 
-    save(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')), 'Model')
+    save(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')), 'Models')
     disp('YOu aRE a bEAutIFul HUmaN BeiNG, saID anTOniO.')
 end
 

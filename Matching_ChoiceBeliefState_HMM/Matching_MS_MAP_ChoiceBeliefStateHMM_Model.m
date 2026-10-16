@@ -1,4 +1,4 @@
-function Model = Matching_MS_MAP_ChoiceBeliefStateHMM_Model(DataHolder, Models)
+function Models = Matching_MS_MAP_ChoiceBeliefStateHMM_Model(DataHolder, Models)
 % concatenate SessionData in long-format
 nSessions = length(DataHolder);
 
@@ -22,8 +22,7 @@ InitialGLMMAD = mad(EstimatedParameter(:, ModelValidity), 1, 2);
 %% run GLM-HMM with 2:5 states using GLM weight to inform prior
 Models = cell(1, 4);
 for nStates = 2:5
-    Model = struct();
-    Model.MaxECLL = Inf;
+    MinECLL = Inf;
     for iInitialization = 1:20
         %% initialise prior using 1-state estimate with randomness
         Prior.nStates = nStates;
@@ -69,20 +68,9 @@ for nStates = 2:5
             continue
         end
         
-        if Model.MinNegLogDataLikelihood < MinNegLogDataLikelihood
-            Model.InitialParameters = InitialParameters;
-            Model.EstimatedParameters = EstimatedParameter;
-            Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
-            Model.Values = Values;
-            Model.Grad = Grad;
-            Model.Hessian = Hessian;
-            try
-                Model.ParameterStandardError = sqrt(diag(inv(Hessian)))';
-            catch
-                Model.ParameterStandardError = nan(size(EstimatedParameter));
-            end
+        if MinECLL > Model.ECLL(end)
+            MinECLL = Model.ECLL(end);
+            Models{nStates - 1} = Model;
         end
     end
-
-    Models{nStates - 1} = Model;
 end

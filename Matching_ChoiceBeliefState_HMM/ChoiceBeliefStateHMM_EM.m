@@ -20,16 +20,26 @@ while ImprovedLoss > 1e-5 && length(ECLL) < 301
     state and state transition, and update state-related parameters and
     prior
     %}
-    [ExpectedStateInfo, Prior] = ChoiceBeliefStateHMM_E(Parameters, DataHolder, Prior);
+    try
+        [ExpectedStateInfo, Prior] = ChoiceBeliefStateHMM_E(Parameters, DataHolder, Prior);
+    catch
+        disp('Error: problem at E step')
+        error('')
+    end
 
     %% M-step
     %{
     maximizing ECLL by optimizing strategy-related parameters and
     prior based on the expected state(s) they are in using another EM
     %}
-    [NewECLL, Parameters, Prior]...
-        = ChoiceBeliefStateHMM_M(Parameters, DataHolder, Prior, ExpectedStateInfo);
-    
+    try
+        [NewECLL, Parameters, Prior]...
+            = ChoiceBeliefStateHMM_M(Parameters, DataHolder, Prior, ExpectedStateInfo);
+    catch
+        disp('Error: problem at M step')
+        error('')
+    end
+
     %% update loop
     ImprovedLoss = ECLL(end) - NewECLL;
     ECLL(end + 1) = NewECLL;
@@ -44,8 +54,9 @@ elseif length(ECLL) == 300
     Flag = 0;
 end
 
-Posterior = Model.EstimatedParameters;
-ExpectedStateInfo
-Parameters
+Model.ECLL = ECLL;
+Model.EstimatedParameters = Parameters;
+Model.Posterior = Prior;
+Model.ExpectedStateInfo = ExpectedStateInfo;
 
 end

@@ -36,8 +36,8 @@ for iSession = 1:nSessions
     NewECLL = FitInfo.Objective(end);
     %}
     % if any(isnan(MAPParameters)) || isnan(NewECLL) || isinf(NewECLL)
-        UpperBound = ones(size(InitialParameters)) * 40;
-        LowerBound = ones(size(InitialParameters)) * -40;
+        UpperBound = ones(size(InitialParameters)) * 20;
+        LowerBound = ones(size(InitialParameters)) * -20;
         Options.Display = 'off';
         LogPosteriorPDF = @(Estimands)...
             -ChoiceBeliefStateHMM_MAP(Estimands, SessionParameters, SessionData,...
