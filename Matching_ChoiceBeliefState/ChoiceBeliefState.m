@@ -41,9 +41,15 @@ for iTrial = 1:nTrials
 
     ChoiceLeftProb(iTrial) = 1 ./ (1 + exp(-ChoiceLeftLogOdds(iTrial)));    
     
-    LeftRewardProb(iTrial + 1) = (1 - ForgettingRate) * LeftRewardProb(iTrial);
-    RightRewardProb(iTrial + 1) = (1 - ForgettingRate) * RightRewardProb(iTrial);
-    ChoiceMemory(iTrial + 1) = (1 - ChoiceForgettingRate) * ChoiceMemory(iTrial);
+    if isnan(ChoiceLeft(iTrial))
+        LeftRewardProb(iTrial + 1) = LeftRewardProb(iTrial);
+        RightRewardProb(iTrial + 1) = RightRewardProb(iTrial);
+        ChoiceMemory(iTrial + 1) = ChoiceMemory(iTrial);
+    else
+        LeftRewardProb(iTrial + 1) = (1 - ForgettingRate) * LeftRewardProb(iTrial);
+        RightRewardProb(iTrial + 1) = (1 - ForgettingRate) * RightRewardProb(iTrial);
+        ChoiceMemory(iTrial + 1) = (1 - ChoiceForgettingRate) * ChoiceMemory(iTrial);
+    end
 
     % outcome-value conversion
     if ChoiceLeft(iTrial) == 1
