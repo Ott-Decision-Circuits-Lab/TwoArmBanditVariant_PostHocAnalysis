@@ -2,6 +2,7 @@ function Model = Matching_SS_MLE_ChoiceBeliefState_Model(SessionData)
 nTrials = SessionData.nTrials;
 ChoiceLeft = SessionData.Custom.TrialData.ChoiceLeft(1:nTrials);
 Rewarded = SessionData.Custom.TrialData.Rewarded(1:nTrials);
+nValids = sum(~isnan(ChoiceLeft));
 
 % Parametric estimation
 LowerBound = [0.05, -10, 0, -2, 0.5, -10,   0, -2];
@@ -34,6 +35,7 @@ for iInitialCond = 1:20
         
         Model.EstimatedParameters = EstimatedParameters;
         Model.MinNegLogDataLikelihood = MinNegLogDataLikelihood;
+        Model.NLLPerSample = MinNegLogDataLikelihood / nValids;
         Model.Grad = Grad;
         Model.Hessian = Hessian;
         try
