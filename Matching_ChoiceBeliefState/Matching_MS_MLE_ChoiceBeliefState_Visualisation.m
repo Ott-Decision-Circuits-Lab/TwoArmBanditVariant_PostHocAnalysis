@@ -315,12 +315,11 @@ set(BlockTransitionAxes,...
     'TickDir', 'out',...
     'XLim', [-10 50],...
     'XTick', [0 20 40],...
-    'XTickLabel', [1 21 41],...
-    'YLim', [30 70],...
+    'XTickLabel', [1 21 41],... %'YLim', [30 70],...
     'YAxisLocation', 'right',...
     'FontSize', 10);
 xlabel(BlockTransitionAxes, 'iTrial of new block')
-ylabel(BlockTransitionAxes, 'Model-agreed choice (%)')
+ylabel(BlockTransitionAxes, 'Model-disagreed choice (%)')
 
 % Block transition of abs(residuals)
 BlockTransitionAbsResAxes = axes(AnalysisFigure, 'Position', [0.33    0.06    0.15    0.12]);
@@ -841,46 +840,40 @@ for iSession = 1:length(DataHolder)
                                     RewardedMagnitude(iTrial);
     end
     
+    nValids = sum(ValidTrial);
     ValidBlockTrialNumber = BlockTrialNumber(ValidTrial);
-    ValidChoiceLeftLogOdds = ChoiceLeftLogOdds(ValidTrial);
-    ValidExploited = Exploited(ValidTrial)';
+    ValidBlockNumber = BlockNumber(ValidTrial);
+    ValidAbsModelResiduals = AbsModelResiduals(ValidTrial);
+    ValidRewardedHistory = RewardedHistory(ValidTrial);
 
     % Block 1 transition (1st -> 2nd)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 2);
-    BlockTransitionIdx = find(ValidChoice >= BlockTransitionIdx, 1, 'first');
-    ChosenPHigh = ValidChoiceLeft(BlockTransitionIdx - 15:BlockTransitionIdx + 50) == PHighChoice(iSession, 1);
-    
-    Block1To2Agreed(iSession, :) = ChosenPHigh(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    Block1To2AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-    Block1To2RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    BlockTransitionIdx = find(ValidBlockTrialNumber >= 1 & ValidBlockNumber == 2, 1, 'first');
+    Block1To2Agreed(iSession, :) = ValidExploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block1To2AbsRes(iSession, :) = ValidAbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    Block1To2RewRate(iSession, :) = ValidRewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     
     % Block 2 transition (2nd -> 3rd)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 3);
-    PHighChoice(iSession, 2) = RewardProb(1, BlockTransitionIdx) > RewardProb(2, BlockTransitionIdx);
-    BlockTransitionIdx = find(ValidChoice >= BlockTransitionIdx, 1, 'first');
-    ChosenPHigh = ValidChoiceLeft(BlockTransitionIdx - 20:BlockTransitionIdx + 50) == PHighChoice(iSession, 2);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block2To3Agreed(iSession, :) = ChosenPHigh(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block2To3AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-        Block2To3RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    BlockTransitionIdx = find(ValidBlockTrialNumber >= 1 & ValidBlockNumber == 3, 1, 'first');
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nValids
+        Block2To3Agreed(iSession, :) = ValidExploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block2To3AbsRes(iSession, :) = ValidAbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block2To3RewRate(iSession, :) = ValidRewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
     
     % Block 3 transition (3rd -> 4th)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 4);
-    PHighChoice(iSession, 1) = RewardProb(1, BlockTransitionIdx) > RewardProb(2, BlockTransitionIdx);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block3To4Agreed(iSession, :) = 1 - Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block3To4AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-        Block3To4RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    BlockTransitionIdx = find(ValidBlockTrialNumber >= 1 & ValidBlockNumber == 4, 1, 'first');
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nValids
+        Block3To4Agreed(iSession, :) = ValidExploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block3To4AbsRes(iSession, :) = ValidAbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block3To4RewRate(iSession, :) = ValidRewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
 
     % Block 4 transition (4th -> 5th)
-    BlockTransitionIdx = find(BlockTrialNumber == 1 & BlockNumber == 5);
-    PHighChoice(iSession, 1) = RewardProb(1, BlockTransitionIdx) > RewardProb(2, BlockTransitionIdx);
-    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nTrials
-        Block4To5Agreed(iSession, :) = 1 - Exploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50) >= 0.5;
-        Block4To5AbsRes(iSession, :) = AbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
-        Block4To5RewRate(iSession, :) = RewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+    BlockTransitionIdx = find(ValidBlockTrialNumber >= 1 & ValidBlockNumber == 5, 1, 'first');
+    if ~isempty(BlockTransitionIdx) & BlockTransitionIdx + 50 <= nValids
+        Block4To5Agreed(iSession, :) = ValidExploited(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block4To5AbsRes(iSession, :) = ValidAbsModelResiduals(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
+        Block4To5RewRate(iSession, :) = ValidRewardedHistory(BlockTransitionIdx - 15:BlockTransitionIdx + 50);
     end
 
     % Explore/exploit level against reward rate
@@ -1344,7 +1337,7 @@ Block1To2Agreed = Block1To2Agreed(1:iSession, :);
 Block1To2ExploreMean = mean(Block1To2Agreed, 'omitnan');
 Block1To2ExploreLine = line(BlockTransitionAxes,...
                             'xdata', -15:50,...
-                            'ydata', movmean(Block1To2ExploreMean, [5, 0]) * 100,...
+                            'ydata', 100 - movmean(Block1To2ExploreMean, [5, 0]) * 100,...
                             'LineStyle', '-',...
                             'Marker', 'none',...
                             'Color', 0.0 * [1 1 1]);
@@ -1354,7 +1347,7 @@ Block2To3Agreed = Block2To3Agreed(1:iSession, :);
 Block2To3ExploreMean = mean(Block2To3Agreed, 'omitnan');
 Block2To3ExploreLine = line(BlockTransitionAxes,...
                             'xdata', -15:50,...
-                            'ydata', movmean(Block2To3ExploreMean, [5, 0]) * 100,...
+                            'ydata', 100 - movmean(Block2To3ExploreMean, [5, 0]) * 100,...
                             'LineStyle', '-',...
                             'Marker', 'none',...
                             'Color', 0.2 * [1 1 1]);
@@ -1364,7 +1357,7 @@ Block3To4Agreed = Block3To4Agreed(1:iSession, :);
 Block3To4ExploreMean = mean(Block3To4Agreed, 'omitnan');
 Block3To4ExploreLine = line(BlockTransitionAxes,...
                             'xdata', -15:50,...
-                            'ydata', movmean(Block3To4ExploreMean, [5, 0]) * 100,...
+                            'ydata', 100 - movmean(Block3To4ExploreMean, [5, 0]) * 100,...
                             'LineStyle', '-',...
                             'Marker', 'none',...
                             'Color', 0.4 * [1 1 1]);
@@ -1374,7 +1367,7 @@ Block4To5Agreed = Block4To5Agreed(1:iSession, :);
 Block4To5ExploreMean = mean(Block4To5Agreed, 'omitnan');
 Block4To5ExploreLine = line(BlockTransitionAxes,...
                             'xdata', -15:50,...
-                            'ydata', movmean(Block4To5ExploreMean, [5, 0]) * 100,...
+                            'ydata', 100 - movmean(Block4To5ExploreMean, [5, 0]) * 100,...
                             'LineStyle', '-',...
                             'Marker', 'none',...
                             'Color', 0.6 * [1 1 1]);
