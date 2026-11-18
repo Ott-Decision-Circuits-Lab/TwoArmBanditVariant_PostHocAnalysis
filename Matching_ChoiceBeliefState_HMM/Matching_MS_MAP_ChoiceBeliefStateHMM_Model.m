@@ -19,9 +19,9 @@ end
 InitialGLMMedian = median(EstimatedParameter(:, ModelValidity), 2);
 InitialGLMMAD = mad(EstimatedParameter(:, ModelValidity), 1, 2);
 
-%% run GLM-HMM with 2:5 states using GLM weight to inform prior
+%% run GLM-HMM with 2:5 states using GLM weight to inform prior (not 1 state as dirpdf doesn't work)
 Models = cell(1, 4);
-for nStates = 1:5
+for nStates = 2:5
     MinECLL = Inf;
     for iInitialization = 1:20
         %% initialise prior using 1-state estimate with randomness

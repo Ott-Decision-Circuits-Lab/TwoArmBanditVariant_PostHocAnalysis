@@ -12,7 +12,7 @@ Prior.StrategyWeightSigma = reshape(StrategyWeightSigma, nStates, []);
 
 StrategyParameterAlpha = Estimand(8*nStates + 1:8*nStates + 4);
 StrategyParameterAlpha = log(exp(StrategyParameterAlpha) + 1);
-Prior.StrategyWeightSigma = StrategyParameterAlpha;
+Prior.StrategyParameterAlpha = StrategyParameterAlpha;
 
 StrategyParameterBeta = Estimand(8*nStates + 5:8*nStates + 8);
 StrategyParameterBeta = log(exp(StrategyParameterBeta) + 1);
@@ -50,13 +50,13 @@ for iSession = 1:nSessions
     Options.Display = 'off';
     
     LogPosterior = @(Estimand)...
-        ChoiceBeliefStateHMM_CalculateSessionECLL(Estimand, SessionData, SessionParameters, Prior, SessionExpectedStateInfo);
+        ChoiceBeliefStateHMM_CalculateSessionECLL(Estimand, SessionParameters, SessionData, Prior, SessionExpectedStateInfo);
     
     FinalEstimate = fmincon(LogPosterior, InitialEstimate, [], [], [], [], LowerBound, UpperBound, [], Options);
     
     % get best estimate of Parameter
     [SessionECLL, SessionParameters]...
-        = ChoiceBeliefStateHMM_CalculateSessionECLL(FinalEstimate, SessionData, SessionParameters, Prior, SessionExpectedStateInfo);
+        = ChoiceBeliefStateHMM_CalculateSessionECLL(FinalEstimate, SessionParameters, SessionData, Prior, SessionExpectedStateInfo);
     
     % insert result
     Parameters{iSession} = SessionParameters;

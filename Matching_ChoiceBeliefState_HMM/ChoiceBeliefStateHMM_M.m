@@ -8,6 +8,18 @@ maximize ECLL by optimizing Session strategy-related parameters
 % these priors cannot be optimized as the session parameters are from the
 % E-step, thus here they are just summarized statistically using
 % method-of-moment
+nStates = Prior.nStates;
+nSessions = length(DataHolder);
+AllInitialStateProbability = zeros(nStates, nSessions);
+AllStateTransitionMatrix = zeros(nStates, nStates, nSessions);
+for iSession = 1:nSessions
+    InitialStateProbability = Parameters{iSession}.InitialStateProbability;
+    StateTransitionMatrix = Parameters{iSession}.StateTransitionMatrix;
+    
+    AllInitialStateProbability(:, iSession) = InitialStateProbability;
+    AllStateTransitionMatrix(:, :, iSession) = StateTransitionMatrix;
+end
+
 TempMean = mean(AllInitialStateProbability, 2);
 TempVar = var(AllInitialStateProbability, 0, 2);
 Prior.InitialStateProbabilityAlpha = TempMean .* (TempMean .* (1 - TempMean) ./ TempVar - 1);
@@ -19,7 +31,6 @@ end
 
 %% maximize MAP by optimizing parameter estimates
 % get initial values of estimate (which are the strategy-related prior)
-nStates = Prior.nStates;
 StrategyWeightMu = Prior.StrategyWeightMu; % nStates * 4
 StrategyWeightSigma = Prior.StrategyWeightSigma; % nStates * 4
 StrategyParameterAlpha = Prior.StrategyParameterAlpha; % 4
@@ -47,7 +58,7 @@ Options.Display = 'off';
 LogPosterior = @(Estimand)...
     ChoiceBeliefStateHMM_CalculateECLL(Estimand, Parameters, DataHolder, Prior, ExpectedStateInfo);
 
-FinalEstimate = fmincon(LogPosterior, InitialEstimate, [], [], [], [], LowerBound, UpperBound, [], Options);
+FinalEstimate = fmincon(LogPosterior, InitialEstimate, [], [], [], [], LowerBound, UpperBound); %, [], Options);
 
 % get best estimate of Prior and Parameter
 [ECLL, Parameters, Prior]...

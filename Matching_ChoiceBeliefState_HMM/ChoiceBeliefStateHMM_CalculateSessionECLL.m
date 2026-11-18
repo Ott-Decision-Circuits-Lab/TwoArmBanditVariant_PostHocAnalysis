@@ -6,9 +6,10 @@ calculate ECLL
 
 %% un-parameterize Estimand (strategy-related Prior)
 nStates = Prior.nStates;
-StrategyWeight = Estimand(1:4*nStates);
+SessionParameters.StrategyWeight = Estimand(1:4*nStates);
+SessionParameters.StrategyWeight = reshape(SessionParameters.StrategyWeight, nStates, []);
 SessionParameters.StrategyParameter = Estimand(4*nStates + 1:4*nStates + 4);
-SessionParameters.StrategyParameter = log(exp(StrategyParameter) + 1);
+SessionParameters.StrategyParameter = log(exp(SessionParameters.StrategyParameter) + 1);
 
 %% extract info
 % extract SessionData
@@ -26,7 +27,7 @@ Rewarded = Rewarded(Valid);
 Gamma = SessionExpectedStateInfo.Gamma;
 DataEmissionProb = nan(nStates, nTrials);
 for iState = 1:nStates
-    Parameters = [StrategyWeight(iState, :), StrategyParameter];
+    Parameters = [SessionParameters.StrategyWeight(iState, :), SessionParameters.StrategyParameter];
     Parameters = Parameters([5, 1, 6, 2, 7, 3, 8, 4]);
     [~, Values] = ChoiceBeliefState(Parameters, nTrials, ChoiceLeft, Rewarded);
 
@@ -59,42 +60,33 @@ LogParameterLikelihood...
 
 % StateTransitionMatrix
 StateTransitionMatrixAlpha = Prior.StateTransitionMatrixAlpha; % nStates x nStates
-for iState = 1:nStates
-    StateTransitionMatrixPDF = dirpdf(StateTransitionMatrix(iState, :), StateTransitionMatrixAlpha(iState, :));
-    LogParameterLikelihood...
-        = LogParameterLikelihood...
-            + log(StateTransitionMatrixPDF);
-
-end
+StateTransitionMatrixPDF = dirpdf(StateTransitionMatrix, StateTransitionMatrixAlpha);
+LogParameterLikelihood...
+    = LogParameterLikelihood...
+        + sum(log(StateTransitionMatrixPDF));
 
 % StrategyWeight
 StrategyWeightMu = Prior.StrategyWeightMu; % nStates * 4
 StrategyWeightSigma = Prior.StrategyWeightSigma; % nStates * 4
-for iState = 1:nStates
-    StrategyWeightPDF = pdf('Normal', StrategyWeight(iState, :), StrategyWeightMu, StrategyWeightSigma);
-    for jState = 1:nStates
-        LogParameterLikelihood...
-            = LogParameterLikelihood...
-                + log(StrategyWeightPDF(jState));
-    end
-end
+StrategyWeightPDF = pdf('Normal', SessionParameters.StrategyWeight, StrategyWeightMu, StrategyWeightSigma);
+LogParameterLikelihood...
+    = LogParameterLikelihood...
+        + sum(log(StrategyWeightPDF), 'all');
 
 % StrategyParameter
 StrategyParameterAlpha = Prior.StrategyParameterAlpha; % 4
 StrategyParameterBeta = Prior.StrategyParameterBeta; % 4
-StrategyParameterPDF = pdf('Beta', StrategyParameter, StrategyParameterAlpha', StrategyParameterBeta');
-for iPara = 1:4
-    LogParameterLikelihood...
-        = LogParameterLikelihood...
-            + log(StrategyParameterPDF(iPara));
-end
+StrategyParameterPDF = pdf('Beta', SessionParameters.StrategyParameter, StrategyParameterAlpha, StrategyParameterBeta);
+LogParameterLikelihood...
+    = LogParameterLikelihood...
+        + sum(log(StrategyParameterPDF), 'all');
 
 %% calculate penalty for StrategyWeight using L1 regularization (Laplace)
 LogPenalty = 0;
 for iState = 1:nStates
     StrategyWeightL1Lambda = Prior.StrategyWeightL1Lambda(iState);
     PenaltyLogPDF...
-        = sum(abs(StrategyWeight(iState, :))) / StrategyWeightL1Lambda...
+        = sum(abs(SessionParameters.StrategyWeight(iState, :))) / StrategyWeightL1Lambda...
             - 4 * log(2 * StrategyWeightL1Lambda);
 
     LogPenalty...

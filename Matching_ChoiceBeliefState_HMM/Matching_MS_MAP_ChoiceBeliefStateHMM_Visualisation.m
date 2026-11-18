@@ -61,7 +61,6 @@ end
 %% MoA-GMM solved by EM algorithm (2-5 states)
 AnalysisName = 'Matching_MS_MAP_ChoiceBeliefStateHMM';
 
-Models = {};
 try
     load(fullfile(DataFolderPath, strcat('\', AnalysisName, '.mat')));
 catch
