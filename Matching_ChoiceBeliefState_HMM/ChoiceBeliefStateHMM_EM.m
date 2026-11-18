@@ -21,7 +21,7 @@ while ImprovedLoss > 1e-5 && length(ECLL) < 301
     prior
     %}
     try
-        [ExpectedStateInfo, Prior] = ChoiceBeliefStateHMM_E(Parameters, DataHolder, Prior);
+        ExpectedStateInfo = ChoiceBeliefStateHMM_E(Parameters, DataHolder, Prior);
     catch
         disp('Error: problem at E step')
         error('')
@@ -30,7 +30,7 @@ while ImprovedLoss > 1e-5 && length(ECLL) < 301
     %% M-step
     %{
     maximizing ECLL by optimizing strategy-related parameters and
-    prior based on the expected state(s) they are in using another EM
+    prior based on the expected state(s)
     %}
     try
         [NewECLL, Parameters, Prior]...

@@ -1,4 +1,4 @@
-function [ExpectedStateInfo, Prior] = ChoiceBeliefStateHMM_E(Parameters, DataHolder, Prior)
+function ExpectedStateInfo = ChoiceBeliefStateHMM_E(Parameters, DataHolder, Prior)
 %{
 evaluate marginal posterior of hidden state gamma(t, j)=P(z_t=j|D, theta) 
 and joint posterior of consecutive states zeta(t, i, j)=P(z_t=i, z_t+1=j| D, theta)
@@ -16,6 +16,8 @@ nSessions = length(DataHolder);
 ExpectedStateInfo = cell(1, nSessions);
 AllInitialStateProbability = zeros(nStates, nSessions);
 AllStateTransitionMatrix = zeros(nStates, nStates, nSessions);
+AllStrategyWeight = zeros(nStates, 4, nSessions);
+AllStrategyParameter = zeros(4, nSessions);
 for iSession = 1:nSessions
     %% preparing information
     % extract SessionData
@@ -107,9 +109,12 @@ for iSession = 1:nSessions
     Parameters{iSession}.StateTransitionMatrix = StateTransitionMatrix;
     AllInitialStateProbability(:, iSession) = InitialStateProbability;
     AllStateTransitionMatrix(:, :, iSession) = StateTransitionMatrix;
+    AllStrategyWeight(:, :, iSession) = StrategyWeight;
+    AllStrategyParameter(:, iSession) = StrategyParameter;
 
 end
 
+%{
 % update state-related prior using method of moments
 TempMean = mean(AllInitialStateProbability, 2);
 TempVar = var(AllInitialStateProbability, 0, 2);
@@ -120,4 +125,21 @@ for iState = 1:nStates
     Prior.StateTransitionMatrixAlpha(iState, :) = TempMean .* (TempMean .* (1 - TempMean) ./ TempVar - 1);
 end
 
+% update strategy-related prior
+%% calculate expected value of the prior parameters
+Prior.StrategyWeightMu = mean(AllStrategyWeight, 3);
+Prior.StrategyWeightSigma = std(AllStrategyWeight, 0, 3);
+
+% estimate using method-of-moment
+TempMean = mean(AllStrategyParameter, 2);
+TempVar = var(AllStrategyParameter, 0, 2);
+Prior.StrategyParameterAlpha...
+    = TempMean...
+        .* (TempMean .* (1 - TempMean)...
+        ./ TempVar - 1);
+Prior.StrategyParameterBeta...
+    = (1 - TempMean)...
+        .* (TempMean .* (1 - TempMean)...
+        ./ TempVar - 1);
+%}
 end

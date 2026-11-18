@@ -1,19 +1,16 @@
-function [LogPosterior, Values]...
-    = ChoiceBeliefStateHMM_MAP(Estimands, SessionParameters, SessionData, Prior, SessionExpectedStateInfo)
+function [LogPosterior, SessionParameters]...
+    = ChoiceBeliefStateHMM_CalculateSessionECLL(Estimand, SessionParameters, SessionData, Prior, SessionExpectedStateInfo)
 %{
-calculate full ECLL even though this only requires optimizing
-strategy-related parameters
+calculate ECLL
 %}
 
-%% extract info
+%% un-parameterize Estimand (strategy-related Prior)
 nStates = Prior.nStates;
+StrategyWeight = Estimand(1:4*nStates);
+SessionParameters.StrategyParameter = Estimand(4*nStates + 1:4*nStates + 4);
+SessionParameters.StrategyParameter = log(exp(StrategyParameter) + 1);
 
-% reshape and convert Parameters
-StrategyWeight = Estimands(1:end-4);
-StrategyWeight = reshape(StrategyWeight, 4, nStates)';
-StrategyParameter = Estimands(end-3:end);
-StrategyParameter = 1 ./ (1 + exp(-StrategyParameter));
-
+%% extract info
 % extract SessionData
 TrialData = SessionData.Custom.TrialData;
 ChoiceLeft = TrialData.ChoiceLeft;
@@ -50,7 +47,7 @@ LogStateLikelihood...
     = sum(Gamma(:, 1) .* log(InitialStateProbability), 'all')...
         + sum(Zeta .* permute(repmat(log(StateTransitionMatrix), 1, 1, nTrials - 1), [1, 3, 2]), 'all');
 
-%% calculate log prior
+%% calculate log(parameter | prior)
 LogParameterLikelihood = 0;
 
 % InitialStateProbability
@@ -92,9 +89,22 @@ for iPara = 1:4
             + log(StrategyParameterPDF(iPara));
 end
 
+%% calculate penalty for StrategyWeight using L1 regularization (Laplace)
+LogPenalty = 0;
+for iState = 1:nStates
+    StrategyWeightL1Lambda = Prior.StrategyWeightL1Lambda(iState);
+    PenaltyLogPDF...
+        = sum(abs(StrategyWeight(iState, :))) / StrategyWeightL1Lambda...
+            - 4 * log(2 * StrategyWeightL1Lambda);
+
+    LogPenalty...
+        = LogPenalty + PenaltyLogPDF;
+end
+
 %% calculate log posterior & gradients
 LogPosterior = LogDataLikelihood +...
                  LogStateLikelihood +...
-                 LogParameterLikelihood;
+                 LogParameterLikelihood +...
+                 LogPenalty;
 
 end % end function
